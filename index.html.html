@@ -1,0 +1,2101 @@
+<title>アジダハーカ</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=IBM+Plex+Mono:wght@400;500&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+/* Layout: 盤面を主役にして、右の列に 相手 → 自分 → 操作 → 記録 を縦に積む。狭い画面では 盤面 → 状態 → 操作 → 記録 の順。 */
+:root {
+  --bg: #e6eaee;
+  --surface: #f6f8fa;
+  --surface-2: #eceff2;
+  --ink: #14202b;
+  --muted: #546572;
+  --line: #cbd3da;
+  --line-strong: #9aa8b3;
+  --cell-a: #dde3e8;
+  --cell-b: #d4dbe1;
+  --fog: rgba(20, 32, 43, 0.34);
+  --veil: rgba(230, 234, 238, 0.80);
+  --wall: #2b3a47;
+  --wall-hi: #415466;
+  --me: #1b5fd8;
+  --me-soft: rgba(27, 95, 216, 0.20);
+  --foe: #cd491c;
+  --foe-soft: rgba(205, 73, 28, 0.17);
+  --foe2: #7a3fc4;
+  --foe2-soft: rgba(122, 63, 196, 0.17);
+  --on-unit: #ffffff;
+  --good: #157a4b;
+  --bad: #c13232;
+  --halo: #f6f8fa;
+  --focus: #1b5fd8;
+  --go: #0f8a4f;
+  --go-glow: rgba(15, 138, 79, 0.5);
+  --font-display: 'Dela Gothic One', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', sans-serif;
+  --font-body: 'Zen Kaku Gothic New', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e141a;
+    --surface: #16202a;
+    --surface-2: #1c2833;
+    --ink: #e6edf2;
+    --muted: #93a4b0;
+    --line: #2a3743;
+    --line-strong: #4b5f6e;
+    --cell-a: #1b2630;
+    --cell-b: #17212a;
+    --fog: rgba(4, 8, 12, 0.52);
+    --veil: rgba(14, 20, 26, 0.80);
+    --wall: #566c7e;
+    --wall-hi: #7189a0;
+    --me: #68a2ff;
+    --me-soft: rgba(104, 162, 255, 0.24);
+    --foe: #ff865b;
+    --foe-soft: rgba(255, 134, 91, 0.20);
+    --foe2: #c29bff;
+    --foe2-soft: rgba(194, 155, 255, 0.22);
+    --on-unit: #0a1420;
+    --good: #4fcf94;
+    --bad: #ff6b6b;
+    --halo: #16202a;
+    --focus: #68a2ff;
+    --go: #4fcf94;
+    --go-glow: rgba(79, 207, 148, 0.55);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e141a;
+  --surface: #16202a;
+  --surface-2: #1c2833;
+  --ink: #e6edf2;
+  --muted: #93a4b0;
+  --line: #2a3743;
+  --line-strong: #4b5f6e;
+  --cell-a: #1b2630;
+  --cell-b: #17212a;
+  --fog: rgba(4, 8, 12, 0.52);
+  --veil: rgba(14, 20, 26, 0.80);
+  --wall: #566c7e;
+  --wall-hi: #7189a0;
+  --me: #68a2ff;
+  --me-soft: rgba(104, 162, 255, 0.24);
+  --foe: #ff865b;
+  --foe-soft: rgba(255, 134, 91, 0.20);
+  --foe2: #c29bff;
+  --foe2-soft: rgba(194, 155, 255, 0.22);
+  --on-unit: #0a1420;
+  --good: #4fcf94;
+  --bad: #ff6b6b;
+  --halo: #16202a;
+  --focus: #68a2ff;
+  --go: #4fcf94;
+  --go-glow: rgba(79, 207, 148, 0.55);
+  color-scheme: dark;
+}
+
+.t0 { --tc: var(--me); --tcs: var(--me-soft); }
+.t1 { --tc: var(--foe); --tcs: var(--foe-soft); }
+.t2 { --tc: var(--foe2); --tcs: var(--foe2-soft); }
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 15px/1.65 var(--font-body);
+  padding-block: 18px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+button { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+h1, h2, h3, p, ol, dl, dd { margin: 0; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.app { max-width: 1120px; margin: 0 auto; display: grid; gap: 22px; }
+
+/* ---------- ヘッダー ---------- */
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; flex-wrap: wrap; }
+.mark { width: 66px; height: 22px; flex: none; }
+.mark .m-me { fill: var(--me); }
+.mark .m-foe { fill: var(--foe); }
+.mark .m-foe2 { fill: var(--foe2); }
+h1 { font: 400 30px/1.1 var(--font-display); letter-spacing: 0.02em; }
+.sub { color: var(--muted); font-size: 13px; }
+.hbar { display: flex; align-items: center; gap: 6px 22px; flex-wrap: wrap; justify-content: flex-end; }
+.turn { font: 500 13px var(--font-mono); letter-spacing: 0.1em; color: var(--muted); display: flex; align-items: baseline; gap: 6px; }
+.turn b { font: 500 26px var(--font-mono); color: var(--ink); letter-spacing: 0; font-variant-numeric: tabular-nums; }
+
+/* ---------- ボタン ---------- */
+.btn {
+  min-height: 46px; padding: 0 18px;
+  border: 1.5px solid var(--line-strong); background: var(--surface); border-radius: 8px;
+  font-weight: 700; cursor: pointer;
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+  line-height: 1.2; gap: 1px;
+  transition: background 0.12s, border-color 0.12s, transform 0.06s;
+}
+.btn small { font-size: 11px; font-weight: 500; color: var(--muted); }
+.btn:hover:not(:disabled) { background: var(--surface-2); }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn:disabled { opacity: 0.42; cursor: not-allowed; }
+.btn.sel { border-color: var(--me); background: var(--me-soft); box-shadow: inset 0 0 0 1.5px var(--me); }
+.btn.primary { background: var(--me); border-color: var(--me); color: var(--on-unit); }
+.btn.primary:hover:not(:disabled) { background: var(--me); filter: brightness(1.08); }
+.btn.big { min-height: 52px; padding: 0 34px; font-size: 17px; }
+.link { background: none; border: 0; color: var(--muted); text-decoration: underline; cursor: pointer; min-height: 36px; padding: 0 4px; }
+
+/* ---------- 武器選び ---------- */
+.select-head { display: grid; gap: 6px; max-width: 62ch; }
+h2 { font: 700 22px/1.3 var(--font-body); }
+.lead { color: var(--muted); }
+.slots { display: grid; gap: 22px; }
+.slot { display: grid; gap: 10px; }
+.slot h3 { font: 700 16px/1.3 var(--font-body); display: flex; align-items: center; gap: 8px; }
+.slot h3 .p-badge { width: 24px; height: 24px; font-size: 13px; }
+.weapons { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.wcard {
+  display: grid; grid-template-columns: auto 1fr; grid-template-areas: "g n" "g s" "t t" "m m";
+  column-gap: 14px; row-gap: 6px; align-content: start; text-align: left;
+  padding: 16px; border: 2px solid var(--line); background: var(--surface); border-radius: 10px;
+  cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s;
+}
+.wcard:hover { border-color: var(--line-strong); }
+.wcard[aria-checked="true"] { border-color: var(--me); box-shadow: 0 0 0 3px var(--me-soft); }
+.wglyph { grid-area: g; width: 52px; height: 52px; border-radius: 50%; background: var(--me); color: var(--on-unit); display: grid; place-items: center; font: 700 26px var(--font-body); }
+.wname { grid-area: n; font-weight: 700; font-size: 18px; align-self: end; }
+.wstats { grid-area: s; display: flex; gap: 14px; font: 500 13px var(--font-mono); color: var(--muted); align-self: start; }
+.wstats b { color: var(--ink); font-weight: 500; }
+.wtext { grid-area: t; font-size: 14px; }
+.wmatch { grid-area: m; font-size: 13px; color: var(--muted); padding-top: 8px; border-top: 1px solid var(--line); }
+.subs { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.scard {
+  display: grid; gap: 4px; align-content: start; text-align: left;
+  padding: 12px 16px; border: 2px solid var(--line); background: var(--surface); border-radius: 10px;
+  cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s;
+}
+.scard:hover { border-color: var(--line-strong); }
+.scard[aria-checked="true"] { border-color: var(--me); box-shadow: 0 0 0 3px var(--me-soft); }
+.sname { font-weight: 700; font-size: 16px; }
+.stext { font-size: 13px; color: var(--muted); }
+.select-foot { display: flex; flex-wrap: wrap; gap: 16px 28px; align-items: flex-end; justify-content: space-between; }
+.field { display: grid; gap: 6px; }
+.field-label { font-size: 13px; color: var(--muted); font-weight: 500; }
+.seg { display: inline-flex; border: 1.5px solid var(--line-strong); border-radius: 8px; overflow: hidden; }
+.seg button { border: 0; background: var(--surface); padding: 0 18px; min-height: 46px; cursor: pointer; font-weight: 500; }
+.seg button + button { border-left: 1.5px solid var(--line-strong); }
+.seg button[aria-checked="true"] { background: var(--ink); color: var(--bg); font-weight: 700; }
+.howto { border-top: 1px solid var(--line); padding-top: 14px; }
+.howto summary { cursor: pointer; font-weight: 700; min-height: 32px; }
+.howto ol { margin: 10px 0 0; padding-left: 1.4em; display: grid; gap: 6px; max-width: 68ch; }
+
+/* ---------- 対戦画面 ---------- */
+/* 広い画面: 盤面 | 中央（相手 → 自分 → 操作） | 記録。ページ全体はスクロールさせず、記録の列の中だけスクロールする */
+.play { --bs: max(300px, min(calc(100dvh - 82px), calc(100vw - 610px))); display: grid; grid-template-columns: var(--bs) minmax(330px, 1fr) minmax(180px, 220px); gap: 14px; align-items: stretch; min-height: 0; }
+.board-wrap { position: relative; width: var(--bs); height: var(--bs); }
+#board { display: block; width: 100%; height: 100%; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+.mid { display: flex; flex-direction: column; gap: 6px; min-width: 0; min-height: 0; overflow-y: auto; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; min-width: 0; }
+.fighter { display: grid; gap: 4px; flex: none; }
+body.playing { height: 100dvh; overflow: hidden; margin: 0; padding-block: 8px; }
+body.playing .app { max-width: none; height: calc(100dvh - 16px); grid-template-rows: auto minmax(0, 1fr); gap: 8px; }
+body.playing .top { min-height: 38px; }
+body.playing h1 { font-size: 22px; }
+body.playing .sub, body.playing .mark { display: none; }
+.f-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.f-dot { width: 14px; height: 14px; border-radius: 50%; flex: none; }
+.fighter .f-dot { background: var(--tc); }
+.f-name { font-weight: 700; }
+.f-total { margin-left: auto; font: 500 13px var(--font-mono); color: var(--muted); }
+.fighter.out { opacity: 0.6; }
+/* 駒1つ = 1行（名前・武器 | 状態の印 | HP）。印が長いときだけ折り返す */
+.prow { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; padding-top: 4px; border-top: 1px solid var(--line); }
+.prow .p-head { flex: 1 1 0; min-width: 96px; }
+.prow .chips { order: 1; flex: 0 1 auto; }
+.prow .f-hp { order: 2; flex: 0 0 104px; }
+.prow.dead { opacity: 0.5; }
+.p-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.p-badge { width: 20px; height: 20px; border-radius: 50%; flex: none; display: grid; place-items: center; background: var(--tc, var(--me)); color: var(--on-unit); font: 700 12px/1 var(--font-body); }
+.p-name { font-weight: 700; font-size: 14px; }
+.p-weapon { margin-left: auto; font-size: 12px; color: var(--muted); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.p-name { flex: none; }
+.f-hp { display: flex; align-items: center; gap: 8px; }
+.hpbar { flex: 1; height: 10px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.hpbar i { display: block; height: 100%; width: 100%; transform-origin: 0 50%; transition: transform 0.5s ease; background: var(--tc, var(--me)); }
+.hpbar i.low { background: var(--bad); }
+.hpnum { font: 500 16px var(--font-mono); min-width: 3ch; text-align: right; font-variant-numeric: tabular-nums; }
+.chips { display: flex; gap: 5px; flex-wrap: wrap; }
+.chips:empty { display: none; }
+.chip { font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 999px; border: 1.5px solid var(--line-strong); color: var(--muted); }
+.chip.ok { border-color: var(--tc, var(--me)); color: var(--tc, var(--me)); }
+.chip.warn { border-style: dashed; }
+
+/* 操作パネル: 矢印パッドと「決定」を横に並べ、すぐ下に行動ボタン、説明文はその外側（いちばん下）に置く。
+   .panel / .c-groups / .commit は display: contents にして、中身を .controls のグリッドに直接並べる。
+     行1 駒のタブ / 行2 矢印の使い道（移動・跳ぶ・盾。あるときだけ）/ 行3 矢印パッド（左）と「決定」（右、行2〜3にまたがる）
+     行4 行動ボタン / 行5 狙う相手 / 行6 説明文（左）とキー操作（右） */
+.controls { --pb: clamp(56px, calc((100dvh - 589px) / 2), 68px); display: grid; grid-template-columns: calc(var(--pb) * 3 + 16px) minmax(0, 1fr); align-content: start; gap: 6px 10px; flex: 1 0 auto; min-height: 230px; overflow-y: auto; }
+.panel, .c-groups, .commit { display: contents; }
+.ptabs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; grid-column: 1 / -1; grid-row: 1; }
+.ptab { display: flex; align-items: center; gap: 8px; min-height: 42px; padding: 3px 10px; text-align: left; border: 1.5px solid var(--line-strong); background: var(--surface); border-radius: 8px; cursor: pointer; }
+.ptab .p-badge { --tc: var(--me); width: 24px; height: 24px; font-size: 13px; }
+.ptab[aria-selected="true"] { border-color: var(--me); box-shadow: inset 0 0 0 1.5px var(--me); background: var(--me-soft); }
+.ptab:disabled { opacity: 0.45; cursor: not-allowed; }
+.pt-main { display: grid; line-height: 1.3; min-width: 0; }
+.pt-main b { font-size: 13px; }
+.pt-main b, .pt-main small { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pt-sum { font-size: 12px; color: var(--muted); }
+.pt-sub { font-size: 12px; color: var(--muted); }
+.ptab.done .pt-sum { color: var(--good); font-weight: 700; }
+.tg { grid-column: 1 / -1; grid-row: 5; display: grid; gap: 3px; }
+.tg .c-cap { display: block; }
+.dead-msg { grid-column: 1 / -1; grid-row: 3; }
+.tgrow { display: flex; gap: 6px; flex-wrap: wrap; }
+.tgrow .btn { min-height: 40px; padding: 0 12px; }
+.tgrow .btn.t1.sel { border-color: var(--foe); background: var(--foe-soft); box-shadow: inset 0 0 0 1.5px var(--foe); }
+.tgrow .btn.t2.sel { border-color: var(--foe2); background: var(--foe2-soft); box-shadow: inset 0 0 0 1.5px var(--foe2); }
+.c-title { display: none; }
+.c-group { display: grid; gap: 3px; grid-column: 1; grid-row: 3; align-content: start; }
+.c-cap { display: none; }
+.padmode { grid-column: 1; grid-row: 2; display: flex; gap: 4px; }
+.padmode button { flex: 1 1 0; min-height: 30px; padding: 0 6px; border: 1.5px solid var(--line-strong); background: var(--surface); border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.padmode button.on { border-color: var(--me); background: var(--me-soft); box-shadow: inset 0 0 0 1.5px var(--me); }
+/* 矢印パッド: 1つのボタンは --pb（64〜68px。低い画面では最小56px）、間隔は8px */
+.pad { display: grid; grid-template-columns: repeat(3, var(--pb)); grid-template-rows: repeat(2, var(--pb)); gap: 8px; }
+.pad .btn { padding: 0; min-height: 0; font-size: 30px; line-height: 1; }
+.pad .u { grid-column: 2; grid-row: 1; }
+.pad .l { grid-column: 1; grid-row: 2; }
+.pad .d { grid-column: 2; grid-row: 2; }
+.pad .r { grid-column: 3; grid-row: 2; }
+.g-acts { grid-column: 1 / -1; grid-row: 4; }
+.acts { display: grid; grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); gap: 6px; }
+.acts .btn { min-height: 40px; padding: 0 4px; font-size: 14px; }
+.acts .btn small { display: none; }
+/* 決定: 矢印パッドの隣に、パッドと同じ高さで置く。揃ったら緑になって、ゆっくり脈動する */
+.commit .btn { grid-column: 2; grid-row: 2 / 4; align-self: stretch; justify-self: stretch; max-width: 180px; min-height: 0; font-size: 22px; letter-spacing: 0.08em; flex-direction: row; gap: 10px; }
+.commit .btn.primary:disabled { background: var(--surface-2); border-color: var(--line-strong); color: var(--muted); opacity: 1; }
+.commit .btn.primary.ready { background: var(--go); border-color: var(--go); color: var(--on-unit); animation: pulse 1.8s ease-in-out infinite; }
+.commit .btn.primary.ready:hover:not(:disabled) { background: var(--go); }
+.hint { grid-column: 1; grid-row: 6; font-size: 12px; color: var(--muted); min-height: 1.3em; line-height: 1.3; }
+.hint.dead-msg { grid-column: 1 / -1; grid-row: 3; }
+.keys { grid-column: 2; grid-row: 6; font-size: 12px; color: var(--muted); }
+.keys summary { cursor: pointer; width: max-content; }
+.keys[open] { grid-column: 1 / -1; grid-row: 7; }
+.keys p { margin-top: 4px; }
+@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 var(--go-glow); } 50% { box-shadow: 0 0 0 9px transparent; } }
+@media (prefers-reduced-motion: reduce) { .commit .btn.primary.ready { animation: none; box-shadow: 0 0 0 3px var(--go-glow); } }
+@media (pointer: coarse) { .keys { display: none; } }
+
+.log { display: flex; flex-direction: column; min-height: 0; }
+.log h3 { font-size: 13px; font-weight: 700; color: var(--muted); letter-spacing: 0.04em; margin-bottom: 8px; flex: none; }
+.log ol { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; align-content: start; flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+.log li { display: grid; grid-template-columns: 3.2ch 1fr; gap: 2px 10px; font-size: 13px; line-height: 1.5; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.log li:last-child { border-bottom: 0; padding-bottom: 0; }
+.log .tn { font: 500 12px var(--font-mono); color: var(--muted); padding-top: 2px; grid-row: span 4; }
+.log .al { font-weight: 700; }
+.log .good { color: var(--good); }
+.log .bad { color: var(--bad); }
+.log .dim { color: var(--muted); }
+.opts { display: flex; gap: 2px 16px; flex-wrap: wrap; align-items: center; }
+.sw { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; cursor: pointer; font-size: 13px; }
+.sw input { width: 16px; height: 16px; accent-color: var(--me); }
+.opts .link { font-size: 13px; }
+
+/* 結果は盤面に重ねる。盤面が小さくても切れないよう、はみ出すときは中でスクロールする */
+.result { position: absolute; inset: 0; display: grid; place-items: center; background: var(--veil); padding: 10px; overflow: auto; }
+.r-card { background: var(--surface); border: 1px solid var(--line-strong); border-radius: 12px; padding: 16px 20px; text-align: center; display: grid; gap: 8px; max-width: 420px; max-height: 100%; overflow: auto; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18); }
+.r-title { font: 400 40px/1.1 var(--font-display); }
+.r-title.win { color: var(--good); }
+.r-title.lose { color: var(--bad); }
+.r-sub { color: var(--muted); }
+.r-stats { font: 500 14px var(--font-mono); font-variant-numeric: tabular-nums; }
+.r-rank { list-style: none; padding: 0; display: grid; gap: 4px; text-align: left; font-size: 14px; }
+.r-rank li { padding-left: 10px; border-left: 5px solid var(--tc); }
+.r-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 6px; }
+
+/* ---------- 盤面（SVG） ---------- */
+.cell.a { fill: var(--cell-a); }
+.cell.b { fill: var(--cell-b); }
+.cell.go { cursor: pointer; }
+.cell.go:hover { stroke: var(--me); stroke-width: 4; stroke-dasharray: 10 8; }
+.frame { fill: none; stroke: var(--line-strong); stroke-width: 3; pointer-events: none; }
+.rf, .rm, .fogc { pointer-events: none; fill: transparent; transition: fill 0.25s, opacity 0.3s; }
+.rf.on { fill: var(--foe-soft); }
+.rm.on { fill: var(--me-soft); }
+.fogc { fill: var(--fog); opacity: 0; }
+.fogc.on { opacity: 1; }
+.wall { fill: var(--wall); pointer-events: none; }
+.wall-in { fill: var(--wall-hi); pointer-events: none; }
+.lab { fill: var(--muted); font: 500 20px var(--font-mono); text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+.unit { transition: transform 0.43s cubic-bezier(0.3, 0.8, 0.25, 1), opacity 0.25s; pointer-events: none; }
+.unit.notr, .ghost.notr { transition: none; }
+.unit.cloak { opacity: 0.4; }
+.unit.hidden { opacity: 0; }
+.unit .body { stroke: var(--surface); stroke-width: 5; }
+.unit .body { fill: var(--tc); }
+.unit .selring { fill: none; stroke: var(--me); stroke-width: 5; stroke-dasharray: 3 9; stroke-linecap: round; opacity: 0; transition: opacity 0.2s; }
+.unit .selring.on { opacity: 1; }
+.unit .badge-c { fill: var(--surface); stroke: var(--tc); stroke-width: 4; }
+.unit .badge-t { fill: var(--ink); font: 700 19px var(--font-body); text-anchor: middle; dominant-baseline: central; }
+.unit .glyph { fill: var(--on-unit); font: 700 36px var(--font-body); text-anchor: middle; dominant-baseline: central; }
+.unit .aura { fill: none; stroke-width: 4; stroke-dasharray: 8 8; opacity: 0; transition: opacity 0.25s; transform-box: fill-box; transform-origin: center; }
+.unit .aura { stroke: var(--tc); }
+.unit .aura.on { opacity: 1; }
+@media (prefers-reduced-motion: no-preference) { .unit .aura.on { animation: spin 7s linear infinite; } }
+.hp-bg { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1.5; }
+.hp-fg { transform-box: fill-box; transform-origin: 0 50%; transition: transform 0.5s ease; }
+.unit .hp-fg { fill: var(--tc); }
+.unit .hp-fg.low { fill: var(--bad); }
+.ghost { opacity: 0.9; pointer-events: none; transition: opacity 0.25s; }
+.ghost.hidden { opacity: 0; }
+.ghost circle { fill: none; stroke: var(--tc); stroke-width: 4; stroke-dasharray: 6 7; }
+.ghost text { fill: var(--tc); font: 700 34px var(--font-body); text-anchor: middle; dominant-baseline: central; }
+.ghost text.gl { font-size: 16px; }
+.pv-move { fill: var(--me-soft); stroke: var(--me); stroke-width: 4; stroke-dasharray: 10 8; pointer-events: none; }
+.pv-guard { fill: none; stroke: var(--me); stroke-width: 10; stroke-linecap: round; opacity: 0.85; pointer-events: none; }
+.pv-target { fill: none; stroke: var(--me); stroke-width: 5; pointer-events: none; }
+.pv-line { stroke: var(--me); stroke-width: 3; stroke-dasharray: 3 9; stroke-linecap: round; pointer-events: none; }
+.pv-ring { fill: none; stroke: var(--me); stroke-width: 4; stroke-dasharray: 4 8; pointer-events: none; }
+.beam { fill: none; stroke-linecap: round; animation: beam 0.7s ease-out forwards; pointer-events: none; }
+.beam { stroke: var(--tc); }
+.beam.snipe { stroke-width: 9; }
+.beam.shot { stroke-width: 5; }
+.beam.melee { stroke-width: 18; }
+.fxnum { font: 700 40px var(--font-body); text-anchor: middle; paint-order: stroke; stroke: var(--halo); stroke-width: 7; stroke-linejoin: round; animation: rise 1.05s ease-out forwards; pointer-events: none; }
+.fxnum.good { fill: var(--good); }
+.fxnum.bad { fill: var(--bad); }
+.fxnum.info { fill: var(--ink); font-size: 28px; }
+.fxring { fill: none; stroke-width: 5; transform-box: fill-box; transform-origin: center; animation: ring 0.7s ease-out forwards; pointer-events: none; }
+.fxring { stroke: var(--tc); }
+.fxwedge { fill: none; stroke-width: 12; stroke-linecap: round; animation: beam 0.8s ease-out forwards; pointer-events: none; }
+.fxwedge { stroke: var(--tc); }
+.body.hit { animation: hit 0.45s linear 1; }
+@keyframes beam { 0% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes rise { 0% { opacity: 0; transform: translateY(8px); } 15% { opacity: 1; } 100% { opacity: 0; transform: translateY(-40px); } }
+@keyframes ring { 0% { opacity: 0.9; transform: scale(0.7); } 100% { opacity: 0; transform: scale(1.6); } }
+@keyframes hit { 0%, 100% { opacity: 1; } 25%, 75% { opacity: 0.2; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* 狭い画面（900px未満）: 縦並び。盤面 → 操作パネル → 相手・自分のカード → 記録 の順 */
+@media (max-width: 899px) {
+  body.playing { height: auto; overflow: visible; padding-block: 18px 48px; }
+  body.playing .app { height: auto; grid-template-rows: none; gap: 22px; }
+  body.playing .sub { display: inline; }
+  body.playing h1 { font-size: 26px; }
+  .play { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .board-wrap { width: 100%; height: auto; }
+  #board { height: auto; }
+  .mid { display: contents; }
+  .board-wrap { order: 1; }
+  .controls { order: 2; flex: none; padding: 12px 14px; --pb: 68px; overflow: visible; }
+  .fighter { order: 3; }
+  .log { order: 4; }
+  .log ol { max-height: 300px; }
+  .panel { overflow: visible; }
+  h1 { font-size: 26px; }
+  .hbar { justify-content: flex-start; }
+}
+@media (min-width: 900px) {
+  .c-title { display: none; }
+}
+@media (min-width: 900px) and (max-height: 800px) {
+  .r-title { font-size: 34px; }
+  .r-card { gap: 6px; padding: 12px 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+</style>
+
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 66 22" aria-hidden="true">
+        <circle class="m-me" cx="11" cy="11" r="9"></circle>
+        <circle class="m-foe" cx="33" cy="11" r="9"></circle>
+        <circle class="m-foe2" cx="55" cy="11" r="9"></circle>
+      </svg>
+      <h1>アジダハーカ</h1>
+      <span class="sub">同時ターン制の三つ巴（駒2つ × 3チーム）</span>
+    </div>
+    <div class="hbar" id="turnBox" hidden>
+      <div class="opts">
+        <label class="sw"><input type="checkbox" id="optFog"> 視界の霧</label>
+        <label class="sw"><input type="checkbox" id="optRange"> 敵の射程を表示</label>
+        <label class="sw"><input type="checkbox" id="optAuto"> 自動で決定</label>
+        <button class="link" id="toMenu" type="button">メニューへ戻る</button>
+      </div>
+      <div class="turn"><span>TURN</span><b id="turnNo">01</b><span id="turnMax">/ 50</span></div>
+    </div>
+  </header>
+
+  <section id="screenSelect" aria-labelledby="selTitle" style="display:grid;gap:22px">
+    <div class="select-head">
+      <h2 id="selTitle">駒を2つ選ぶ</h2>
+      <p class="lead">あなたの駒は2つ。CPU-A と CPU-B も2つずつ持っていて、得点（撃破と生存）が最も多いチームの勝ちです。相手の武器は、試合が始まると分かります。</p>
+    </div>
+    <div class="slots">
+      <div class="slot t0">
+        <h3><span class="p-badge">1</span>駒1の武器とサブトリガー</h3>
+        <div class="weapons" id="weapons0" role="radiogroup" aria-label="駒1の武器"></div>
+        <span class="field-label">サブトリガー（メイン武器とは別に1つ）</span>
+        <div class="subs" id="subs0" role="radiogroup" aria-label="駒1のサブトリガー"></div>
+      </div>
+      <div class="slot t0">
+        <h3><span class="p-badge">2</span>駒2の武器とサブトリガー</h3>
+        <div class="weapons" id="weapons1" role="radiogroup" aria-label="駒2の武器"></div>
+        <span class="field-label">サブトリガー（メイン武器とは別に1つ）</span>
+        <div class="subs" id="subs1" role="radiogroup" aria-label="駒2のサブトリガー"></div>
+      </div>
+    </div>
+    <div class="select-foot">
+      <div class="field">
+        <span class="field-label" id="lvLabel">CPUの強さ</span>
+        <div class="seg" id="levels" role="radiogroup" aria-labelledby="lvLabel"></div>
+      </div>
+      <button class="btn primary big" id="start" type="button">試合開始</button>
+    </div>
+    <details class="howto">
+      <summary>遊び方</summary>
+      <ol>
+        <li>9×9の盤面で、あなた・CPU-A・CPU-B の3チームが戦います。各チームは駒を2つ持ちます。</li>
+        <li>毎ターン、あなたは2つの駒それぞれの行動を1つずつ決めます（タブか Q/E で駒を切り替え）。決定すると、6つの駒が同時に動き、先に移動、そのあとに攻撃の順で処理されます。</li>
+        <li>攻撃は「移動したあとの位置」で当たり判定をします。届く敵が複数いるときは、狙う相手を選べます（選ばなければHPの低い敵）。誰もが敵なので、味方以外は全員が相手です。</li>
+        <li>壁の向こうは見えません。見えない敵の居場所は、薄い「？」の印と読みが頼りです（霧はオフにできます）。</li>
+        <li>防御は受けるダメージを減らします。狙撃は防御を貫きます。シールドは選んだ向きの近接・射撃だけを完全に防ぎ、使った次のターンは使えません。</li>
+        <li>狙撃は「溜め」を終えてから撃てます。動くか攻撃を受けると溜めが切れます。</li>
+        <li><b>サブトリガー。</b>駒ごとに、メイン武器とは別に1つ選べます（なし / バッグワーム / グラスホッパー）。CPUの駒は、ランダムに持っています。</li>
+        <li><b>バッグワーム。</b>行動「バッグワーム」を選ぶと、そのターンの終わりから隠れ状態になり、敵から見えなくなります（視線が通っていても見えません）。ただし、敵の駒が2マス以内（斜めも含む）に来ると見えてしまいます。隠れている間は、攻撃と溜めができません（移動・待機・防御はできます）。「解除」を選ぶと、そのターンの終わりに解けます。攻撃を受けても、強制的に解けます。隠れた敵は、狙って選べません。でも、射程に入っていれば攻撃は当たります。隠れた自分の駒は半透明、見えなくなった敵は「？」の印になります。</li>
+        <li><b>グラスホッパー。</b>行動「跳ぶ」で、上下左右のどれかの2マス先へ一気に動きます。間の壁や駒は飛び越えられます。行き先が壁や盤の外なら選べません。行き先に別の駒が止まっている・同じマスを目指す駒がいるときは、普通の移動と同じく、その場に留まります。使うと次のターンは使えません。溜め中の狙撃手が跳ぶと、動いたのと同じで溜めが切れます。</li>
+        <li>キー操作：5＝バッグワーム／解除、Shift＋矢印＝跳ぶ（盾の駒では盾の向きに使うので、盾の駒が跳ぶときは「6」を押してから矢印）。</li>
+        <li><b>得点で競います。</b>敵の駒を1体倒すごとに、倒したチームに1点（同じターンに複数のチームが攻撃したときは、いちばん多くダメージを与えたチームに入ります。同点なら両方に1点）。</li>
+        <li>試合のターン数は、40〜50の間でランダムに決まります（画面右上に表示）。ターン数に到達した時点で、生き残っている駒1つにつき2点が入ります。</li>
+        <li>撃破点と生存点を合わせた合計点が最も多いチームの勝ちです。同点なら残りHPの合計が多い方、それも同じなら引き分けです。チームの駒が2つとも倒れると全滅で、残りが1チームになったときも、その場で終了して点数を数えます。</li>
+      </ol>
+    </details>
+  </section>
+
+  <section id="screenPlay" class="play" hidden>
+    <div class="board-wrap">
+      <svg id="board" role="img" aria-label="9×9の盤面。壁の陰は見えません。"></svg>
+      <div id="result" class="result" hidden></div>
+    </div>
+    <div class="mid">
+      <section class="card fighter t1" id="cardA" aria-label="CPU-A"></section>
+      <section class="card fighter t2" id="cardB" aria-label="CPU-B"></section>
+      <section class="card fighter t0" id="cardMe" aria-label="あなた"></section>
+      <section class="card controls" id="controls" aria-label="行動を選ぶ"></section>
+    </div>
+    <section class="card log"><h3>これまで</h3><ol id="log"></ol></section>
+  </section>
+  <p class="sr" id="live" aria-live="polite"></p>
+</div>
+
+<script>
+// アジダハーカ: ゲームの規則（画面に依存しない純粋なロジック）
+// 3チーム（あなた / CPU-A / CPU-B）が、それぞれ駒を2つ持つ三つ巴。
+// 数値を変えたいときは、この上の方の WEAPONS / RULES を編集する。
+const Maai = (function () {
+  'use strict';
+
+  // ---------- 盤面とチーム ----------
+  const SIZE = 9;
+  const N = SIZE * SIZE;
+  const TEAMS = 3;
+  const PER = 2;                    // 1チームの駒の数
+  const UNITS = TEAMS * PER;        // 駒の番号: 0,1 = あなた / 2,3 = CPU-A / 4,5 = CPU-B
+  // 試合のターン数は 40〜50 のどこかで、試合ごとにランダムに決まる
+  const MIN_TURNS = 40;
+  const MAX_TURNS = 50;
+  const KILL_POINT = 1;       // 敵を1体撃破するごとに、そのチームへ
+  const SURVIVE_POINT = 2;    // ターン数を超えたとき、生き残っている駒1つにつき
+  const randomLimit = () => MIN_TURNS + Math.floor(Math.random() * (MAX_TURNS - MIN_TURNS + 1));
+  const START_HP = 100;
+  // 壁。左右反転しても同じ形（CPU-A と CPU-B のどちらも有利にならない）
+  const WALL_LIST = [[4, 0], [3, 1], [5, 1], [2, 3], [6, 3], [4, 4], [1, 5], [7, 5], [3, 5], [5, 5], [2, 7], [6, 7]];
+  const STARTS = [
+    [{ x: 3, y: 8 }, { x: 5, y: 8 }],   // あなた（下）
+    [{ x: 0, y: 1 }, { x: 1, y: 0 }],   // CPU-A（左上）
+    [{ x: 8, y: 1 }, { x: 7, y: 0 }],   // CPU-B（右上）
+  ];
+  const TEAM_NAMES = ['あなた', 'CPU-A', 'CPU-B'];
+  const TEAM_TAG = ['', 'A', 'B'];
+  const teamOf = i => Math.floor(i / PER);
+  const unitsOf = t => { const o = []; for (let k = 0; k < PER; k++) o.push(t * PER + k); return o; };
+  const unitName = i => (teamOf(i) === 0 ? '駒' : TEAM_TAG[teamOf(i)]) + ((i % PER) + 1);
+
+  const DIRS = { N: { x: 0, y: -1 }, S: { x: 0, y: 1 }, W: { x: -1, y: 0 }, E: { x: 1, y: 0 } };
+  const DIR_KEYS = ['N', 'S', 'W', 'E'];
+  const DIR_LABEL = { N: '↑', S: '↓', W: '←', E: '→' };
+
+  // ---------- 武器 ----------
+  // kind: 防御との相性を決める分類（melee=近接系 / shot=射撃系 / snipe=狙撃系）
+  const WEAPONS = {
+    melee: {
+      id: 'melee', name: '近接', glyph: '近', kind: 'melee',
+      range: 1, minRange: 1, dmg: 40,
+      text: '射程は隣の8マス。威力が高い。',
+      match: '狙撃に強い。射撃が苦手。',
+    },
+    gun: {
+      id: 'gun', name: '射撃', glyph: '射', kind: 'shot',
+      range: 3, minRange: 1, dmg: 20,
+      text: '射程3。壁の向こうには撃てない。',
+      match: '近接と盾に強い。',
+    },
+    sniper: {
+      id: 'sniper', name: '狙撃', glyph: '狙', kind: 'snipe',
+      range: 8, minRange: 2, dmg: 50, charge: true,
+      text: '射程8で防御を貫く。撃つ前に「溜め」が必要。動く・被弾すると溜めが切れる。隣の8マスは撃てない。',
+      match: '遠くから狙える。近接と盾が苦手。',
+    },
+    shield: {
+      id: 'shield', name: 'シールド', glyph: '盾', kind: 'melee',
+      range: 1, minRange: 1, dmg: 30, shield: true,
+      text: '防御で選んだ向きの近接・射撃を防ぐ。使うと次のターンは使えない。',
+      match: '狙撃に強い。射撃が苦手。',
+    },
+  };
+  const WEAPON_ORDER = ['melee', 'gun', 'sniper', 'shield'];
+
+  // ---------- サブトリガー（メイン武器とは別に、駒ごとに1つ） ----------
+  const SUBS = {
+    none: {
+      id: 'none', name: 'なし',
+      text: 'サブトリガーを持たない。',
+    },
+    bag: {
+      id: 'bag', name: 'バッグワーム',
+      text: '行動「バッグワーム」で姿を隠す。隠れている間は敵から見えない（敵が2マス以内に来ると見える）。攻撃と溜めはできない。攻撃を受けると解ける。',
+    },
+    hopper: {
+      id: 'hopper', name: 'グラスホッパー',
+      text: '行動「跳ぶ」で、上下左右のどれかの2マス先へ一気に動く。壁や駒は飛び越える。使うと次のターンは使えない。',
+    },
+  };
+  const SUB_ORDER = ['none', 'bag', 'hopper'];
+
+  // ---------- 防御の効き方 ----------
+  const RULES = {
+    // バッグワームで隠れた駒が、敵に見えてしまう距離（マス。チェビシェフ距離）
+    bagSight: 2,
+    // グラスホッパーで跳ぶ距離（マス）
+    jumpDist: 2,
+    // 通常の防御: 受けるダメージの倍率
+    guardMult: { melee: 0.3, shot: 0.5, snipe: 1 },
+    // 盾の防御（選んだ向きの正面だけ。狙撃は貫く）
+    shieldMult: { melee: 0, shot: 0, snipe: 1 },
+    // 盾で近接攻撃を完全に防いだとき、相手に返すダメージ
+    reflect: 20,
+  };
+
+  // ---------- 壁・視線・距離（起動時に一度だけ計算） ----------
+  const idx = (x, y) => y * SIZE + x;
+  const inBounds = (x, y) => x >= 0 && y >= 0 && x < SIZE && y < SIZE;
+  const WALL = new Array(N).fill(false);
+  for (const [x, y] of WALL_LIST) WALL[idx(x, y)] = true;
+  const isWall = (x, y) => !inBounds(x, y) || WALL[idx(x, y)];
+  const same = (a, b) => a.x === b.x && a.y === b.y;
+  const cheb = (a, b) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
+
+  function calcLos(ax, ay, bx, by) {
+    if (ax === bx && ay === by) return true;
+    const dx = bx - ax, dy = by - ay;
+    const n = Math.max(Math.abs(dx), Math.abs(dy)) * 4;
+    for (let i = 1; i < n; i++) {
+      const t = i / n;
+      const px = ax + 0.5 + dx * t + 1e-4;
+      const py = ay + 0.5 + dy * t + 1.7e-4;
+      const cx = Math.floor(px), cy = Math.floor(py);
+      if ((cx === ax && cy === ay) || (cx === bx && cy === by)) continue;
+      if (isWall(cx, cy)) return false;
+    }
+    return true;
+  }
+  const LOS = new Uint8Array(N * N);
+  for (let a = 0; a < N; a++) {
+    for (let b = 0; b < N; b++) {
+      LOS[a * N + b] = calcLos(a % SIZE, Math.floor(a / SIZE), b % SIZE, Math.floor(b / SIZE)) ? 1 : 0;
+    }
+  }
+  const hasLOS = (a, b) => LOS[idx(a.x, a.y) * N + idx(b.x, b.y)] === 1;
+
+  // 歩いたときの最短手数（壁を避ける）
+  const DIST = new Int16Array(N * N).fill(-1);
+  for (let s = 0; s < N; s++) {
+    if (WALL[s]) continue;
+    const q = [s];
+    DIST[s * N + s] = 0;
+    for (let h = 0; h < q.length; h++) {
+      const c = q[h];
+      const cx = c % SIZE, cy = Math.floor(c / SIZE);
+      for (const k of DIR_KEYS) {
+        const nx = cx + DIRS[k].x, ny = cy + DIRS[k].y;
+        if (isWall(nx, ny)) continue;
+        const ni = idx(nx, ny);
+        if (DIST[s * N + ni] === -1) { DIST[s * N + ni] = DIST[s * N + c] + 1; q.push(ni); }
+      }
+    }
+  }
+  const pathDist = (a, b) => { const d = DIST[idx(a.x, a.y) * N + idx(b.x, b.y)]; return d < 0 ? 99 : d; };
+
+  function inReach(weaponId, a, b) {
+    const W = WEAPONS[weaponId];
+    const d = cheb(a, b);
+    return d >= W.minRange && d <= W.range && hasLOS(a, b);
+  }
+  function rangeCells(weaponId, pos) {
+    const out = [];
+    for (let y = 0; y < SIZE; y++) for (let x = 0; x < SIZE; x++) {
+      if (WALL[idx(x, y)] || (x === pos.x && y === pos.y)) continue;
+      if (inReach(weaponId, pos, { x, y })) out.push(idx(x, y));
+    }
+    return out;
+  }
+  const cellName = (x, y) => 'ABCDEFGHI'[x] + (y + 1);
+
+  // ---------- 状態 ----------
+  const alive = u => u.hp > 0;
+  // weapons: 6つの武器の名前（あなたの2つ, CPU-A の2つ, CPU-B の2つ）
+  // limit: この試合のターン数（省略すると MAX_TURNS）
+  // subs: 6つのサブトリガー（省略すると全員「なし」）
+  // 駒の hidden = バッグワームで隠れている / scd = グラスホッパーの再使用待ち
+  function newGame(weapons, limit, subs) {
+    const units = [];
+    for (let t = 0; t < TEAMS; t++) for (let k = 0; k < PER; k++) {
+      const p = STARTS[t][k], i = t * PER + k;
+      const sub = subs && SUBS[subs[i]] ? subs[i] : 'none';
+      units.push({ x: p.x, y: p.y, hp: START_HP, weapon: weapons[i], charged: false, cd: 0, sub, hidden: false, scd: 0 });
+    }
+    return { turn: 1, limit: limit || MAX_TURNS, units, elim: [], score: [0, 0, 0], result: null };
+  }
+  function cloneState(s) {
+    return {
+      turn: s.turn,
+      limit: s.limit,
+      score: s.score.slice(),
+      units: s.units.map(u => ({ x: u.x, y: u.y, hp: u.hp, weapon: u.weapon, charged: u.charged, cd: u.cd, sub: u.sub, hidden: u.hidden, scd: u.scd })),
+      elim: s.elim.slice(),
+      result: s.result,
+    };
+  }
+  const teamHp = (s, t) => unitsOf(t).reduce((a, i) => a + Math.max(0, s.units[i].hp), 0);
+  const teamAlive = (s, t) => unitsOf(t).some(i => alive(s.units[i]));
+  function enemiesOf(s, i) {
+    const t = teamOf(i), out = [];
+    for (let j = 0; j < UNITS; j++) if (teamOf(j) !== t && alive(s.units[j])) out.push(j);
+    return out;
+  }
+  // チームの誰かから見えているマス
+  function visibleByTeam(s, t) {
+    const out = new Array(N).fill(false);
+    for (const i of unitsOf(t)) {
+      if (!alive(s.units[i])) continue;
+      for (let c = 0; c < N; c++) if (!out[c] && LOS[idx(s.units[i].x, s.units[i].y) * N + c] === 1) out[c] = true;
+    }
+    return out;
+  }
+  // チーム t の誰かが、駒 j を見ているか
+  // 隠れている敵の駒は、視線が通っていても見えない。t の駒が bagSight マス以内にいるときだけ見える
+  function seenBy(s, t, j) {
+    const U = s.units[j];
+    if (U.hidden && teamOf(j) !== t) {
+      for (const i of unitsOf(t)) if (alive(s.units[i]) && cheb(s.units[i], U) <= RULES.bagSight) return true;
+      return false;
+    }
+    for (const i of unitsOf(t)) if (alive(s.units[i]) && hasLOS(s.units[i], s.units[j])) return true;
+    return false;
+  }
+
+  // ---------- 行動 ----------
+  // { t:'move', d } / { t:'attack', tg? (狙う相手の駒番号) } / { t:'guard', d? } / { t:'charge' } / { t:'wait' }
+  // サブトリガー: { t:'bag' } / { t:'unbag' } / { t:'jump', d }
+  const actKey = a => a.t + (a.d || '');
+  const isMoveAct = a => a.t === 'move' || a.t === 'jump';
+
+  function legalActions(state, i) {
+    const u = state.units[i];
+    if (!alive(u)) return [{ t: 'wait' }];
+    const W = WEAPONS[u.weapon], out = [];
+    for (const d of DIR_KEYS) {
+      if (!isWall(u.x + DIRS[d].x, u.y + DIRS[d].y)) out.push({ t: 'move', d });
+    }
+    // 跳ぶ: 行き先が壁・盤の外なら選べない（間の壁や駒は関係ない）
+    if (u.sub === 'hopper' && u.scd === 0) {
+      for (const d of DIR_KEYS) {
+        if (!isWall(u.x + DIRS[d].x * RULES.jumpDist, u.y + DIRS[d].y * RULES.jumpDist)) out.push({ t: 'jump', d });
+      }
+    }
+    // 隠れている間は、攻撃と溜めができない
+    if (!u.hidden && (!W.charge || u.charged)) out.push({ t: 'attack' });
+    if (W.shield) { if (u.cd === 0) for (const d of DIR_KEYS) out.push({ t: 'guard', d }); }
+    else out.push({ t: 'guard' });
+    if (W.charge && !u.charged && !u.hidden) out.push({ t: 'charge' });
+    if (u.sub === 'bag') out.push({ t: u.hidden ? 'unbag' : 'bag' });
+    out.push({ t: 'wait' });
+    return out;
+  }
+  function normalize(state, i, act) {
+    if (act && alive(state.units[i])) {
+      const k = actKey(act);
+      for (const a of legalActions(state, i)) {
+        if (actKey(a) === k) return act.t === 'attack' && act.tg != null ? { t: 'attack', tg: act.tg } : a;
+      }
+    }
+    return { t: 'wait' };
+  }
+
+  // 盾の向き d に対して、攻撃者が正面の±45度に入っているか（rx,ry = 攻撃者 - 防御者）
+  function inCone(d, rx, ry) {
+    const v = DIRS[d];
+    const dot = v.x * rx + v.y * ry;
+    const cross = Math.abs(v.x * ry - v.y * rx);
+    return dot > 0 && dot >= cross;
+  }
+
+  // ---------- 得点と順位 ----------
+  // 合計点 = 撃破した数 + 生存ボーナス。点が同じなら残りHPの合計、それも同じなら
+  // 後から全滅したチームを上に置く。scores を省くと、いまの撃破点だけで並べる。
+  function ranking(s, scores) {
+    const sc = scores || s.score;
+    const elimRank = t => (teamAlive(s, t) ? 99 : s.elim.indexOf(t));
+    return [0, 1, 2].sort((a, b) => sc[b] - sc[a] || teamHp(s, b) - teamHp(s, a) || elimRank(b) - elimRank(a) || a - b);
+  }
+  function finalResult(s, reason) {
+    const kills = s.score.slice();
+    const bonus = [0, 1, 2].map(t => unitsOf(t).filter(i => alive(s.units[i])).length * SURVIVE_POINT);
+    const scores = kills.map((k, t) => k + bonus[t]);
+    const rk = ranking(s, scores);
+    const tie = scores[rk[0]] === scores[rk[1]] && teamHp(s, rk[0]) === teamHp(s, rk[1]);
+    return { winner: tie ? null : rk[0], reason, ranking: rk, scores, kills, bonus };
+  }
+
+  // ---------- 1ターンの処理 ----------
+  // 順序: 移動（全員同時）→ 攻撃（移動後の位置で判定・同時）→ 溜め/盾の更新 → 勝敗
+  // opts.trusted: 渡す行動がすべて合法だと分かっているとき（CPUの試し打ち）は確認を省く
+  function resolveTurn(state, rawActs, opts) {
+    const trusted = !!(opts && opts.trusted);
+    const s = cloneState(state);
+    const U = s.units;
+    const acts = U.map((u, i) => {
+      if (!alive(u)) return { t: 'wait' };
+      return trusted ? (rawActs[i] || { t: 'wait' }) : normalize(state, i, rawActs[i]);
+    });
+    const events = [];
+    const from = U.map(u => ({ x: u.x, y: u.y }));
+
+    // 1. 移動（跳ぶ = 2マス先への移動。間の壁や駒は飛び越えるが、着地の扱いは通常の移動と同じ）
+    const to = acts.map((a, i) => {
+      if (!alive(U[i]) || !isMoveAct(a)) return { x: from[i].x, y: from[i].y };
+      const n = a.t === 'jump' ? RULES.jumpDist : 1;
+      const nx = from[i].x + DIRS[a.d].x * n, ny = from[i].y + DIRS[a.d].y * n;
+      return isWall(nx, ny) ? { x: from[i].x, y: from[i].y } : { x: nx, y: ny };
+    });
+    const moving = acts.map((a, i) => alive(U[i]) && isMoveAct(a) && !same(to[i], from[i]));
+    const blocked = U.map(() => false);
+    // 同じマスを目指す・入れ替わる・留まっている駒のマスへ入る → その場に留まる（動けなくなった駒が
+    // 次の駒の邪魔になることがあるので、変化がなくなるまで繰り返す）
+    for (let round = 0; round < 12; round++) {
+      const bad = [];
+      for (let i = 0; i < UNITS; i++) {
+        if (!moving[i] || blocked[i]) continue;
+        for (let j = 0; j < UNITS; j++) {
+          if (j === i || !alive(U[j])) continue;
+          if (same(to[i], to[j]) || (same(to[i], from[j]) && same(to[j], from[i]))) { bad.push(i); break; }
+        }
+      }
+      if (!bad.length) break;
+      for (const i of bad) { blocked[i] = true; to[i] = { x: from[i].x, y: from[i].y }; }
+    }
+    for (let i = 0; i < UNITS; i++) {
+      if (!alive(U[i])) continue;
+      U[i].x = to[i].x; U[i].y = to[i].y;
+      if (moving[i]) events.push({ type: 'move', who: i, from: from[i], to: { ...to[i] }, blocked: blocked[i], jump: acts[i].t === 'jump' });
+    }
+
+    // 2. 攻撃
+    const taken = U.map(() => 0);
+    const hitBy = U.map(() => false);       // このターンに攻撃が当たった（防がれた場合も含む）
+    const dealt = U.map(() => [0, 0, 0]);   // 駒ごとに、どのチームから何ダメージ受けたか
+    for (let i = 0; i < UNITS; i++) {
+      if (!alive(U[i]) || acts[i].t !== 'attack') continue;
+      const W = WEAPONS[U[i].weapon];
+      const a = { x: U[i].x, y: U[i].y };
+      const foes = enemiesOf(s, i);
+      const cand = foes.filter(j => inReach(U[i].weapon, a, U[j]));
+      const ev = { type: 'attack', who: i, target: -1, from: a, to: a, weapon: U[i].weapon, hit: false, reason: null, base: W.dmg, dmg: 0, guard: 'none', reflect: 0 };
+      if (!cand.length) {
+        const inRange = foes.some(j => { const d = cheb(a, U[j]); return d >= W.minRange && d <= W.range; });
+        ev.reason = inRange ? 'los' : 'range';
+      } else {
+        // 狙いを指定していて届くならその相手、そうでなければ HP の低い相手（同じなら近い方）
+        // ただし、見えていない敵（隠れている駒）は狙って選べない。判定は今まで通り、射程に入っていれば当たる
+        const pref = acts[i].tg;
+        let tgt;
+        if (pref != null && cand.includes(pref) && seenBy(s, teamOf(i), pref)) tgt = pref;
+        else tgt = cand.slice().sort((p, q) => U[p].hp - U[q].hp || cheb(a, U[p]) - cheb(a, U[q]) || p - q)[0];
+        const b = { x: U[tgt].x, y: U[tgt].y };
+        const d = cheb(a, b);
+        ev.target = tgt; ev.to = b; ev.hit = true;
+        hitBy[tgt] = true;
+        let mult = 1;
+        const g = acts[tgt];
+        if (g.t === 'guard') {
+          if (WEAPONS[U[tgt].weapon].shield) {
+            if (inCone(g.d, a.x - b.x, a.y - b.y)) {
+              mult = RULES.shieldMult[W.kind];
+              ev.guard = mult === 0 ? 'blocked' : (mult < 1 ? 'reduced' : 'pierced');
+              if (mult === 0 && W.kind === 'melee' && d <= 1) ev.reflect = RULES.reflect;
+            } else ev.guard = 'offside';
+          } else {
+            mult = RULES.guardMult[W.kind];
+            ev.guard = mult < 1 ? 'reduced' : 'pierced';
+          }
+        }
+        ev.dmg = Math.round(W.dmg * mult);
+        taken[tgt] += ev.dmg;
+        taken[i] += ev.reflect;
+        dealt[tgt][teamOf(i)] += ev.dmg;
+        dealt[i][teamOf(tgt)] += ev.reflect;
+      }
+      events.push(ev);
+    }
+    const before = U.map(u => u.hp);
+    const before0 = i => before[i] > 0;
+    for (let i = 0; i < UNITS; i++) U[i].hp = Math.max(0, U[i].hp - taken[i]);
+    // 撃破点: このターンに倒れた駒へ、いちばん多くダメージを与えたチームに1点（同じなら両方に1点）
+    const downBy = U.map(() => []);
+    for (let i = 0; i < UNITS; i++) {
+      if (before0(i) && U[i].hp <= 0) {
+        const d = dealt[i], top = Math.max(...d);
+        if (top > 0) downBy[i] = [0, 1, 2].filter(t => t !== teamOf(i) && d[t] === top);
+        for (const t of downBy[i]) s.score[t] += KILL_POINT;
+      }
+    }
+
+    // 3. 溜め・盾の状態
+    for (let i = 0; i < UNITS; i++) {
+      const u = U[i], a = acts[i];
+      if (before[i] <= 0) continue;
+      const W = WEAPONS[u.weapon];
+      if (W.charge) {
+        const was = u.charged;
+        let c = u.charged;
+        if (a.t === 'attack') c = false;
+        else if (a.t === 'charge') c = true;
+        else if (isMoveAct(a)) c = false;
+        let lost = null;
+        if (isMoveAct(a) && was) lost = 'move';
+        if (taken[i] > 0 && a.t !== 'attack' && (c || was)) { c = false; lost = 'hit'; }
+        u.charged = c;
+        if (a.t === 'charge' && c) events.push({ type: 'charge', who: i });
+        if (lost) events.push({ type: 'chargeLost', who: i, why: lost });
+      }
+      if (W.shield) {
+        if (a.t === 'guard') { u.cd = 1; events.push({ type: 'guard', who: i, d: a.d }); }
+        else u.cd = Math.max(0, u.cd - 1);
+      } else if (a.t === 'guard') events.push({ type: 'guard', who: i, d: null });
+      // バッグワーム: 隠れるのは「そのターンの終わり」から。攻撃を受けたら（倒れたときも）解ける
+      if (u.hp <= 0) u.hidden = false;
+      else if (hitBy[i]) {
+        if (u.hidden) { u.hidden = false; events.push({ type: 'reveal', who: i, why: 'hit' }); }
+      } else if (a.t === 'bag') { u.hidden = true; events.push({ type: 'hide', who: i }); }
+      else if (a.t === 'unbag') { u.hidden = false; events.push({ type: 'reveal', who: i, why: 'cmd' }); }
+      // グラスホッパー: 使うと次のターンは使えない
+      if (a.t === 'jump') u.scd = 1;
+      else if (u.scd > 0) u.scd -= 1;
+    }
+    for (let i = 0; i < UNITS; i++) if (before[i] > 0 && U[i].hp <= 0) events.push({ type: 'down', who: i, by: downBy[i] });
+
+    // 4. 勝敗: 最後の1チームになるか、ターン数を超えたら終了。合計点（撃破 + 生存ボーナス）が最も多いチームの勝ち
+    for (let t = 0; t < TEAMS; t++) if (!teamAlive(s, t) && !s.elim.includes(t)) s.elim.push(t);
+    const left = [];
+    for (let t = 0; t < TEAMS; t++) if (teamAlive(s, t)) left.push(t);
+    if (left.length <= 1) s.result = finalResult(s, 'ko');
+    else if (s.turn >= s.limit) s.result = finalResult(s, 'time');
+    else s.turn += 1;
+
+    return { state: s, events, acts };
+  }
+
+  return {
+    SIZE, N, TEAMS, PER, UNITS, MIN_TURNS, MAX_TURNS, KILL_POINT, SURVIVE_POINT, randomLimit, START_HP, WALL_LIST, STARTS, TEAM_NAMES, TEAM_TAG,
+    DIRS, DIR_KEYS, DIR_LABEL, WEAPONS, WEAPON_ORDER, SUBS, SUB_ORDER, RULES,
+    teamOf, unitsOf, unitName, alive,
+    idx, isWall, same, cheb, hasLOS, pathDist, inReach, rangeCells, cellName,
+    newGame, cloneState, teamHp, teamAlive, enemiesOf, visibleByTeam, seenBy, ranking,
+    legalActions, normalize, actKey, resolveTurn, inCone,
+  };
+})();
+if (typeof module !== 'undefined' && module.exports) module.exports = Maai;
+
+// アジダハーカ: CPU の思考（三つ巴・駒2つのチーム用）
+// 1. 見えていない敵の駒は「いそうな場所」の見当（belief）を持ち続ける
+// 2. 敵の駒ごとに「直前の行動」と「これまでの癖」から次の行動を予測し、何通りか仮に引く
+// 3. 自分の2つの駒の行動の組み合わせを全部、実際のルールで試し打ちして点数をつける
+// 4. 点数の高い組み合わせほど選ばれやすいが、毎回同じにはならない（ソフトマックス）
+const MaaiAI = (function (E) {
+  'use strict';
+
+  const LEVELS = {
+    easy:   { label: 'やさしい', temp: 16,  mix: 0,    noise: 0.18, samples: 4 },
+    normal: { label: 'ふつう',   temp: 7,   mix: 0.55, noise: 0.05, samples: 8 },
+    hard:   { label: 'つよい',   temp: 3.2, mix: 0.9,  noise: 0,    samples: 14 },
+  };
+  // 点数のつけ方（シミュレーションで調整する）
+  // hide: 隠れたまま敵に近づけているときの加点 / jumpCost: 跳んだ直後（再使用待ち）の減点
+  const TUNE = { hp: 1.25, foeHp: 0.9, elim: 40, kill: 35, live: 30, pos: 2, threat: 5, urge: 24, vis: 0.4, info: 14, dangerCost: 4, hide: 5, jumpCost: 3 };
+
+  // 各マスから狙える範囲の広さ（開けた場所ほど有利）
+  const VIS = { gun: new Array(E.N).fill(0), sniper: new Array(E.N).fill(0) };
+  for (let i = 0; i < E.N; i++) {
+    const p = { x: i % E.SIZE, y: Math.floor(i / E.SIZE) };
+    if (E.isWall(p.x, p.y)) continue;
+    VIS.gun[i] = E.rangeCells('gun', p).length;
+    VIS.sniper[i] = E.rangeCells('sniper', p).length;
+  }
+  const TYPES = ['move', 'attack', 'guard', 'charge', 'wait', 'jump', 'bag', 'unbag'];
+  const PRIOR = { move: 0.42, attack: 0.30, guard: 0.14, charge: 0.06, wait: 0.08, jump: 0.06, bag: 0.04, unbag: 0.04 };
+  const cellPos = i => ({ x: i % E.SIZE, y: Math.floor(i / E.SIZE) });
+
+  function threat(A, B) {
+    const W = E.WEAPONS[A.weapon];
+    if (A.hidden) return false;
+    if (W.charge && !A.charged) return false;
+    return E.inReach(A.weapon, A, B);
+  }
+
+  // 1ターン後の盤面の良さ（チーム me から見た点数）
+  // ctx.costs[j]: 敵 j のいる場所までの道のり / ctx.b[j]: 敵 j がいる確率 / ctx.unseen: 見えていない敵
+  function evaluate(S, me, ctx) {
+    if (S.result) {
+      if (S.result.winner === me) return 600 - S.turn;
+      if (S.result.winner === null) return -30;
+      return S.result.ranking.indexOf(me) === 1 ? -150 : -450;
+    }
+    const mine = [], foes = [];
+    let myHp = 0, foeHp = 0;
+    for (let i = 0; i < E.UNITS; i++) {
+      const u = S.units[i];
+      if (!E.alive(u)) continue;
+      if (E.teamOf(i) === me) { mine.push(i); myHp += u.hp; } else { foes.push(i); foeHp += u.hp; }
+    }
+    if (!mine.length) return -400;
+    let v = myHp * TUNE.hp - foeHp * TUNE.foeHp;
+    v += TUNE.elim * S.elim.filter(t => t !== me).length;
+    // 得点: 撃破は1点。ターン数に近づくほど「生き残っている駒（1つ2点）」の価値が大きくなる
+    const others = [0, 1, 2].filter(t => t !== me);
+    v += TUNE.kill * (S.score[me] - 0.5 * (S.score[others[0]] + S.score[others[1]]));
+    v += TUNE.live * mine.length * (S.turn / S.limit);
+    const P = TUNE.pos;
+
+    for (const m of mine) {
+      const M = S.units[m], WM = E.WEAPONS[M.weapon];
+      // いちばん近い（道のり的に）敵を基準にする
+      let nj = foes[0], bestC = 1e9;
+      for (const j of foes) {
+        const c = ctx && ctx.costs[j] ? ctx.costs[j][E.idx(M.x, M.y)] : E.pathDist(M, S.units[j]);
+        if (c < bestC) { bestC = c; nj = j; }
+      }
+      const O = S.units[nj];
+      const los = E.hasLOS(M, O), pd = E.pathDist(M, O), d = E.cheb(M, O);
+      const toGo = bestC < 1e8 ? bestC : pd;
+      switch (WM.id) {
+        case 'melee':  v -= 2.4 * P * toGo; if (pd <= 1) v += 6; break;
+        case 'shield': v -= 2.0 * P * toGo; if (pd <= 1) v += 5; break;
+        case 'gun':
+          v -= 2.2 * P * Math.abs(pd - 3); if (los && d <= WM.range) v += 5;
+          v += TUNE.vis * VIS.gun[E.idx(M.x, M.y)];
+          break;
+        case 'sniper':
+          if (los && d >= WM.minRange && d <= WM.range) v += 5;
+          if (M.charged) v += 14;
+          if (pd <= 2) v -= 9; else v -= Math.abs(pd - 6) * P * 0.5;
+          v += TUNE.vis * VIS.sniper[E.idx(M.x, M.y)];
+          break;
+      }
+      if (WM.id !== 'sniper') v -= TUNE.urge * (S.turn / S.limit) * Math.max(0, pd - 2);
+      // サブトリガー: 隠れたまま、敵に2マス以内まで見つからずに近づくほど良い。跳んだ直後は少し減点
+      if (M.hidden && !foes.some(j => E.cheb(M, S.units[j]) <= E.RULES.bagSight)) v += TUNE.hide * (1 + Math.max(0, 8 - toGo) / 8);
+      if (M.scd > 0) v -= TUNE.jumpCost;
+      for (const j of foes) {
+        const F = S.units[j];
+        if (threat(F, M)) v -= E.WEAPONS[F.weapon].id === 'sniper' ? 24 : TUNE.threat;
+        if (threat(M, F)) v += WM.id === 'sniper' ? 10 : 3;
+      }
+    }
+    // 見えていない敵がいそうな場所を、チーム全体でたくさん見渡せているほど良い
+    if (ctx && ctx.unseen.length) {
+      for (const j of ctx.unseen) {
+        const b = ctx.b[j];
+        let mass = 0;
+        for (let i = 0; i < E.N; i++) {
+          if (b[i] <= 0) continue;
+          const p = cellPos(i);
+          for (const m of mine) if (E.hasLOS(S.units[m], p)) { mass += b[i]; break; }
+        }
+        v += TUNE.info * mass;
+      }
+    }
+    return v;
+  }
+
+  // target に着くまでの手数。相手の射程に入るマスは余分にかかるものとして数える
+  function costToTarget(target, oppWeapon) {
+    const danger = new Array(E.N).fill(false);
+    for (const i of E.rangeCells(oppWeapon, target)) danger[i] = true;
+    const cost = new Array(E.N).fill(1e9);
+    cost[E.idx(target.x, target.y)] = 0;
+    const done = new Array(E.N).fill(false);
+    for (;;) {
+      let u = -1, best = 1e9;
+      for (let i = 0; i < E.N; i++) if (!done[i] && cost[i] < best) { best = cost[i]; u = i; }
+      if (u < 0) break;
+      done[u] = true;
+      const ux = u % E.SIZE, uy = Math.floor(u / E.SIZE);
+      for (const k of E.DIR_KEYS) {
+        const nx = ux + E.DIRS[k].x, ny = uy + E.DIRS[k].y;
+        if (E.isWall(nx, ny)) continue;
+        const ni = E.idx(nx, ny);
+        const c = best + 1 + (danger[ni] ? TUNE.dangerCost : 0);
+        if (c < cost[ni]) cost[ni] = c;
+      }
+    }
+    return cost;
+  }
+
+  // team = このCPUが担当するチーム番号
+  function create(level, team) {
+    const L = LEVELS[level] || LEVELS.normal;
+    const myIds = E.unitsOf(team);
+    const foeIds = [];
+    for (let j = 0; j < E.UNITS; j++) if (E.teamOf(j) !== team) foeIds.push(j);
+
+    // 敵の駒ごとの記憶
+    const mem = { b: {}, started: {}, hp: {}, charged: {}, cd: {}, hidden: {}, scd: {}, u: {} };
+    for (const j of foeIds) {
+      const st = E.STARTS[E.teamOf(j)][j % E.PER];
+      mem.b[j] = new Array(E.N).fill(0);
+      mem.b[j][E.idx(st.x, st.y)] = 1;
+      mem.started[j] = false;
+      mem.hp[j] = E.START_HP; mem.charged[j] = false; mem.cd[j] = 0; mem.hidden[j] = false; mem.scd[j] = 0;
+      mem.u[j] = { prev: null, freq: { move: 3, attack: 2.5, guard: 1.2, charge: 0.8, wait: 0.6, jump: 0.3, bag: 0.2, unbag: 0.2 }, trans: {} };
+    }
+
+    // 敵の行動を見た: S0 = そのターンの初めの盤面, acts = 全員の行動
+    function observe(S0, acts) {
+      for (const j of foeIds) {
+        const m = mem.u[j];
+        if (!E.alive(S0.units[j]) || !E.seenBy(S0, team, j) || !acts[j]) { m.prev = null; continue; }
+        const t = acts[j].t;
+        for (const k of TYPES) m.freq[k] *= 0.96;
+        m.freq[t] += 1;
+        if (m.prev) {
+          const row = m.trans[m.prev] || (m.trans[m.prev] = {});
+          row[t] = (row[t] || 0) + 1;
+        }
+        m.prev = t;
+      }
+    }
+
+    function typeDist(j, present) {
+      const m = mem.u[j];
+      const fsum = TYPES.reduce((a, t) => a + m.freq[t], 0);
+      const row = m.prev ? m.trans[m.prev] : null;
+      const rsum = row ? TYPES.reduce((a, t) => a + (row[t] || 0), 0) : 0;
+      const w = {};
+      let tot = 0;
+      for (const t of present) {
+        const global = m.freq[t] / fsum;
+        const cond = row ? ((row[t] || 0) + 2 * global) / (rsum + 2) : global;
+        w[t] = (1 - L.mix) * PRIOR[t] + L.mix * (0.5 * global + 0.5 * cond);
+        tot += w[t];
+      }
+      for (const t of present) w[t] /= tot;
+      return w;
+    }
+
+    // 敵の駒 j がとりうる行動と、その確率
+    function predict(S, j, mineIds) {
+      const U = S.units[j];
+      const legal = E.legalActions(S, j);
+      const groups = {};
+      for (const a of legal) (groups[a.t] || (groups[a.t] = [])).push(a);
+      const present = Object.keys(groups);
+      const td = typeDist(j, present);
+      // いちばん近い自分の駒
+      let np = S.units[mineIds[0]];
+      for (const m of mineIds) if (E.pathDist(U, S.units[m]) < E.pathDist(U, np)) np = S.units[m];
+      const out = [];
+      for (const t of present) {
+        const list = groups[t];
+        const ws = list.map(a => {
+          if (t === 'move' || t === 'jump') {
+            const n = t === 'jump' ? E.RULES.jumpDist : 1;
+            const dest = { x: U.x + E.DIRS[a.d].x * n, y: U.y + E.DIRS[a.d].y * n };
+            return E.pathDist(dest, np) < E.pathDist(U, np) ? 2.5 : 1;
+          }
+          if (t === 'guard' && a.d) return E.inCone(a.d, np.x - U.x, np.y - U.y) ? 3 : 1;
+          return 1;
+        });
+        const sum = ws.reduce((x, y) => x + y, 0);
+        list.forEach((a, k) => out.push({ act: a, p: td[t] * ws[k] / sum }));
+      }
+      return out;
+    }
+
+    // 敵の居場所の見当を更新し、見えていない敵は「いちばんいそうなマス」に置く
+    function updateBelief(S) {
+      const vis = E.visibleByTeam(S, team);
+      const unseen = [];
+      for (const j of foeIds) {
+        const U = S.units[j];
+        if (!E.alive(U)) continue;
+        const b = mem.b[j];
+        if (E.seenBy(S, team, j)) {
+          b.fill(0); b[E.idx(U.x, U.y)] = 1;
+          mem.started[j] = true;
+          mem.hp[j] = U.hp; mem.charged[j] = U.charged; mem.cd[j] = U.cd; mem.hidden[j] = U.hidden; mem.scd[j] = U.scd;
+          continue;
+        }
+        if (mem.started[j]) {
+          const nb = new Array(E.N).fill(0);
+          for (let i = 0; i < E.N; i++) {
+            if (b[i] <= 0) continue;
+            const p = cellPos(i);
+            const nexts = [i];
+            for (const k of E.DIR_KEYS) {
+              const nx = p.x + E.DIRS[k].x, ny = p.y + E.DIRS[k].y;
+              if (!E.isWall(nx, ny)) nexts.push(E.idx(nx, ny));
+            }
+            for (const n of nexts) nb[n] += b[i] / nexts.length;
+          }
+          for (let i = 0; i < E.N; i++) b[i] = nb[i];
+        }
+        mem.started[j] = true;
+        let tot = 0;
+        for (let i = 0; i < E.N; i++) {
+          const p = cellPos(i);
+          if (E.isWall(p.x, p.y) || vis[i]) b[i] = 0;
+          tot += b[i];
+        }
+        if (tot < 1e-9) {
+          for (let i = 0; i < E.N; i++) {
+            const p = cellPos(i);
+            b[i] = (E.isWall(p.x, p.y) || vis[i]) ? 0 : 1;
+            tot += b[i];
+          }
+        }
+        for (let i = 0; i < E.N; i++) b[i] /= tot;
+        let best = 0, bp = -1;
+        for (let i = 0; i < E.N; i++) {
+          const pr = b[i] + Math.random() * 1e-6;
+          if (pr > bp) { bp = pr; best = i; }
+        }
+        U.x = best % E.SIZE; U.y = Math.floor(best / E.SIZE);
+        U.hp = mem.hp[j]; U.charged = mem.charged[j]; U.cd = mem.cd[j]; U.hidden = mem.hidden[j]; U.scd = mem.scd[j];
+        unseen.push(j);
+      }
+      return unseen;
+    }
+
+    // 自分のチームの行動を返す（myIds の順に、駒ごとの行動の配列）
+    function choose(state) {
+      const S = E.cloneState(state);
+      const mineIds = myIds.filter(i => E.alive(S.units[i]));
+      if (!mineIds.length) return myIds.map(() => ({ t: 'wait' }));
+      const unseen = updateBelief(S);
+      const foes = foeIds.filter(j => E.alive(S.units[j]));
+      const costs = {};
+      for (const j of foes) costs[j] = costToTarget(S.units[j], S.units[j].weapon);
+      const ctx = { b: mem.b, unseen, costs };
+
+      // 自分の駒の候補（生きている駒ごと）
+      const cands = mineIds.map(i => E.legalActions(S, i));
+      const combos = [];
+      const rec = (k, cur) => {
+        if (k === mineIds.length) { combos.push(cur.slice()); return; }
+        for (const a of cands[k]) { cur.push(a); rec(k + 1, cur); cur.pop(); }
+      };
+      rec(0, []);
+
+      const toResult = combo => {
+        const out = myIds.map(() => ({ t: 'wait' }));
+        mineIds.forEach((id, k) => { out[myIds.indexOf(id)] = combo[k]; });
+        return out;
+      };
+      if (Math.random() < L.noise) return toResult(combos[Math.floor(Math.random() * combos.length)]);
+
+      // 敵の行動をいくつか仮に引く（どの候補にも同じ引きを使う）
+      const dists = foes.map(j => {
+        const list = predict(S, j, mineIds);
+        let acc = 0;
+        return list.map(e => { acc += e.p; return { act: e.act, c: acc }; });
+      });
+      const samples = [];
+      for (let s = 0; s < L.samples; s++) {
+        const a = new Array(E.UNITS).fill(null).map(() => ({ t: 'wait' }));
+        foes.forEach((j, k) => {
+          const d = dists[k];
+          const r = Math.random() * d[d.length - 1].c;
+          a[j] = (d.find(e => r <= e.c) || d[d.length - 1]).act;
+        });
+        samples.push(a);
+      }
+
+      const ev = combos.map(combo => {
+        let sum = 0;
+        for (const sm of samples) {
+          const acts = sm.slice();
+          mineIds.forEach((id, k) => { acts[id] = combo[k]; });
+          sum += evaluate(E.resolveTurn(S, acts, { trusted: true }).state, team, ctx);
+        }
+        return sum / samples.length;
+      });
+      const top = Math.max(...ev);
+      const ws = ev.map(v => Math.exp((v - top) / L.temp));
+      const total = ws.reduce((a, b) => a + b, 0);
+      let r = Math.random() * total, pick = combos.length - 1;
+      for (let k = 0; k < combos.length; k++) { r -= ws[k]; if (r <= 0) { pick = k; break; } }
+      return toResult(combos[pick]);
+    }
+
+    return { observe, choose, mem, team };
+  }
+
+  return { create, LEVELS, evaluate, TUNE };
+})(typeof module !== 'undefined' && module.exports ? require('./engine.js') : Maai);
+if (typeof module !== 'undefined' && module.exports) module.exports = MaaiAI;
+
+// アジダハーカ: 画面まわり（盤面の描画・操作・演出）
+// 三つ巴: 駒6つ（0,1 = あなた / 2,3 = CPU-A / 4,5 = CPU-B）。あなたは毎ターン、2つの駒それぞれの行動を決める。
+(function () {
+  'use strict';
+  const E = Maai, AIm = MaaiAI;
+  const C = 100, SZ = E.SIZE;
+  const REDUCED = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const T = REDUCED ? { move: 60, fx: 260 } : { move: 440, fx: 860 };
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const NS = 'http://www.w3.org/2000/svg';
+  const $ = id => document.getElementById(id);
+  const tname = t => E.TEAM_NAMES[t];
+  const MINE = E.unitsOf(0);              // [0, 1]
+  const CARD_ID = ['cardMe', 'cardA', 'cardB'];
+
+  // ---------- 小さな道具 ----------
+  function build(make, tag, props, kids) {
+    const n = make(tag);
+    for (const k in (props || {})) {
+      const v = props[k];
+      if (v == null || v === false) continue;
+      if (k === 'class') n.setAttribute('class', v);
+      else if (k === 'text') n.textContent = v;
+      else if (k.slice(0, 2) === 'on') n.addEventListener(k.slice(2), v);
+      else n.setAttribute(k, v === true ? '' : v);
+    }
+    for (const kid of kids.flat()) {
+      if (kid != null && kid !== false) n.append(kid.nodeType ? kid : document.createTextNode(kid));
+    }
+    return n;
+  }
+  const h = (tag, props, ...kids) => build(t => document.createElement(t), tag, props, kids);
+  const sv = (tag, props, ...kids) => build(t => document.createElementNS(NS, t), tag, props, kids);
+
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem('maai.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem('maai.' + k, JSON.stringify(v)); } catch (e) { /* 保存できなくても遊べる */ } },
+  };
+
+  const App = {
+    weapons: store.get('weapons3', ['gun', 'sniper']),
+    subs: store.get('subs1', ['none', 'none']),
+    level: store.get('level', 'normal'),
+    auto: store.get('auto', false) === true,
+    fog: store.get('fog', true),
+    showRange: store.get('range', true),
+    G: null,
+    seq: 0,
+  };
+  if (!Array.isArray(App.weapons) || App.weapons.length !== 2 || !App.weapons.every(w => E.WEAPONS[w])) App.weapons = ['gun', 'sniper'];
+  if (!Array.isArray(App.subs) || App.subs.length !== 2 || !App.subs.every(s => E.SUBS[s])) App.subs = ['none', 'none'];
+  if (!AIm.LEVELS[App.level]) App.level = 'normal';
+
+  const centerOf = p => ({ x: p.x * C + C / 2, y: p.y * C + C / 2 });
+  const place = (g, p) => { g.style.transform = `translate(${p.x * C + C / 2}px, ${p.y * C + C / 2}px)`; };
+  const DIR_NAME = { N: '上', S: '下', W: '左', E: '右' };
+  const alive = (S, i) => S.units[i].hp > 0;
+  const isOver = G => !!G.over || !!G.state.result;
+  // 盤面で見えている敵か（霧オフなら全員、あなたの駒は常に見える）
+  const seenUnit = (S, i) => E.teamOf(i) === 0 || !App.fog || !!S.result || !!App.G.over || E.seenBy(S, 0, i);
+
+  // ---------- 駒選び ----------
+  function rangeText(W) { return W.minRange > 1 ? `${W.minRange}〜${W.range}` : String(W.range); }
+
+  function buildSelect() {
+    for (let s = 0; s < 2; s++) {
+      $('weapons' + s).replaceChildren(...E.WEAPON_ORDER.map(id => {
+        const W = E.WEAPONS[id];
+        return h('button', { type: 'button', class: 'wcard', role: 'radio', 'aria-checked': String(App.weapons[s] === id), 'data-w': id, onclick: () => pickWeapon(s, id) },
+          h('span', { class: 'wglyph', 'aria-hidden': 'true', text: W.glyph }),
+          h('span', { class: 'wname', text: W.name }),
+          h('span', { class: 'wstats' }, h('span', {}, '射程 ', h('b', { text: id === 'melee' || id === 'shield' ? '隣' : rangeText(W) })), h('span', {}, '威力 ', h('b', { text: String(W.dmg) }))),
+          h('span', { class: 'wtext', text: W.text }),
+          h('span', { class: 'wmatch', text: '相性: ' + W.match }));
+      }));
+      $('subs' + s).replaceChildren(...E.SUB_ORDER.map(id => {
+        const B = E.SUBS[id];
+        return h('button', { type: 'button', class: 'scard', role: 'radio', 'aria-checked': String(App.subs[s] === id), 'data-s': id, onclick: () => pickSub(s, id) },
+          h('span', { class: 'sname', text: B.name }),
+          h('span', { class: 'stext', text: B.text }));
+      }));
+    }
+    $('levels').replaceChildren(...['easy', 'normal', 'hard'].map(k =>
+      h('button', { type: 'button', role: 'radio', 'aria-checked': String(App.level === k), 'data-l': k, onclick: () => pickLevel(k), text: AIm.LEVELS[k].label })));
+  }
+  function pickWeapon(s, id) {
+    App.weapons[s] = id; store.set('weapons3', App.weapons);
+    document.querySelectorAll(`#weapons${s} .wcard`).forEach(b => b.setAttribute('aria-checked', String(b.dataset.w === id)));
+  }
+  function pickSub(s, id) {
+    App.subs[s] = id; store.set('subs1', App.subs);
+    document.querySelectorAll(`#subs${s} .scard`).forEach(b => b.setAttribute('aria-checked', String(b.dataset.s === id)));
+  }
+  function pickLevel(k) {
+    App.level = k; store.set('level', k);
+    document.querySelectorAll('#levels button').forEach(b => b.setAttribute('aria-checked', String(b.dataset.l === k)));
+  }
+
+  // ---------- 盤面を作る ----------
+  function buildBoard() {
+    const svg = $('board');
+    svg.replaceChildren();
+    svg.setAttribute('viewBox', `-36 -36 ${SZ * C + 72} ${SZ * C + 72}`);
+    const layer = {};
+    for (const name of ['cells', 'rangeFoe', 'rangeMe', 'fog', 'walls', 'preview', 'ghost', 'units', 'fx', 'labels']) {
+      layer[name] = sv('g', { class: 'L-' + name });
+      svg.append(layer[name]);
+    }
+    const ui = { layer, cell: [], rf: [], rm: [], fog: [], units: [], ghost: {} };
+    for (let y = 0; y < SZ; y++) for (let x = 0; x < SZ; x++) {
+      const i = E.idx(x, y);
+      const c = sv('rect', { class: 'cell ' + ((x + y) % 2 ? 'b' : 'a'), x: x * C, y: y * C, width: C, height: C, 'data-x': x, 'data-y': y });
+      ui.cell[i] = c; layer.cells.append(c);
+      const rf = sv('rect', { class: 'rf', x: x * C, y: y * C, width: C, height: C });
+      const rm = sv('rect', { class: 'rm', x: x * C, y: y * C, width: C, height: C });
+      const fg = sv('rect', { class: 'fogc', x: x * C, y: y * C, width: C, height: C });
+      ui.rf[i] = rf; ui.rm[i] = rm; ui.fog[i] = fg;
+      layer.rangeFoe.append(rf); layer.rangeMe.append(rm); layer.fog.append(fg);
+    }
+    layer.cells.append(sv('rect', { class: 'frame', x: 0, y: 0, width: SZ * C, height: SZ * C }));
+    for (const [x, y] of E.WALL_LIST) {
+      layer.walls.append(sv('rect', { class: 'wall', x: x * C + 3, y: y * C + 3, width: C - 6, height: C - 6, rx: 8 }));
+      layer.walls.append(sv('rect', { class: 'wall-in', x: x * C + 20, y: y * C + 20, width: C - 40, height: C - 40, rx: 5 }));
+    }
+    for (let k = 0; k < SZ; k++) {
+      layer.labels.append(sv('text', { class: 'lab', x: k * C + C / 2, y: -18, text: 'ABCDEFGHI'[k] }));
+      layer.labels.append(sv('text', { class: 'lab', x: -20, y: k * C + C / 2, text: String(k + 1) }));
+    }
+    for (let j = 0; j < E.UNITS; j++) {
+      if (E.teamOf(j) === 0) continue;
+      const g = sv('g', { class: `ghost hidden t${E.teamOf(j)}` }, sv('circle', { r: 36 }), sv('text', { class: 'gq', text: '？' }), sv('text', { class: 'gl', y: 52, text: E.unitName(j) }));
+      ui.ghost[j] = g; layer.ghost.append(g);
+    }
+    for (let i = E.UNITS - 1; i >= 0; i--) { ui.units[i] = makeUnit(i); layer.units.append(ui.units[i].g); }
+    return ui;
+  }
+  function makeUnit(i) {
+    const g = sv('g', { class: `unit notr t${E.teamOf(i)}` });
+    const selring = sv('circle', { class: 'selring', r: 56 });
+    const aura = sv('circle', { class: 'aura', r: 47 });
+    const body = sv('circle', { class: 'body', r: 38 });
+    const glyph = sv('text', { class: 'glyph' });
+    const hpBg = sv('rect', { class: 'hp-bg', x: -34, y: -49, width: 68, height: 9, rx: 4.5 });
+    const hpFg = sv('rect', { class: 'hp-fg', x: -34, y: -49, width: 68, height: 9, rx: 4.5 });
+    const bc = sv('circle', { class: 'badge-c', cx: 30, cy: 30, r: 15 });
+    const bt = sv('text', { class: 'badge-t', x: 30, y: 31, text: String((i % E.PER) + 1) });
+    g.append(selring, aura, body, glyph, hpBg, hpFg, bc, bt);
+    return { g, selring, aura, body, glyph, hpFg };
+  }
+
+  // ---------- 盤面を更新 ----------
+  // linger: この描画では「まだ倒れていない」ものとして見せる駒（演出が終わってから消すため）
+  function renderBoard(S, linger) {
+    const G = App.G, ui = G.ui;
+    const over = !!S.result || G.over;
+    const vis = (App.fog && !over) ? E.visibleByTeam(S, 0) : null;
+    for (let i = 0; i < E.UNITS; i++) {
+      const u = S.units[i], on = u.hp > 0 || !!(linger && linger.has(i));
+      const U = ui.units[i];
+      place(U.g, u);
+      const shown = on && (E.teamOf(i) === 0 || !App.fog || over || E.seenBy(S, 0, i));
+      U.g.classList.toggle('hidden', !shown);
+      if (E.teamOf(i) !== 0 && u.hp > 0 && (!App.fog || over || E.seenBy(S, 0, i))) G.ghost[i] = { x: u.x, y: u.y };
+      U.g.classList.toggle('cloak', !!u.hidden && shown && u.hp > 0);   // 隠れている駒は半透明（見えない敵は、そもそも描かれず「？」の扱い）
+      U.aura.classList.toggle('on', u.charged && shown && u.hp > 0);
+      U.selring.classList.toggle('on', i === G.active && !G.busy && !over && u.hp > 0);
+    }
+    for (let i = 0; i < E.N; i++) {
+      const wall = E.isWall(i % SZ, Math.floor(i / SZ));
+      ui.fog[i].classList.toggle('on', !!vis && !vis[i] && !wall);
+    }
+    for (const j in ui.ghost) {
+      const gh = G.ghost[j];
+      const show = !!vis && S.units[j].hp > 0 && !!gh && !E.seenBy(S, 0, Number(j)) && !vis[E.idx(gh.x, gh.y)];
+      if (gh) place(ui.ghost[j], gh);
+      ui.ghost[j].classList.toggle('hidden', !show);
+    }
+    for (let i = 0; i < E.N; i++) ui.rf[i].classList.remove('on');
+    if (App.showRange && !over) {
+      for (let j = 0; j < E.UNITS; j++) {
+        if (E.teamOf(j) === 0 || S.units[j].hp <= 0 || !seenUnit(S, j)) continue;
+        for (const i of E.rangeCells(S.units[j].weapon, S.units[j])) ui.rf[i].classList.add('on');
+      }
+    }
+    updatePreview();
+  }
+
+  // 敵 j が、駒 k の今の位置から攻撃できる（見えている）か。隠れた敵は、2マス以内に来るまで狙って選べない
+  function targetsFor(k) {
+    const G = App.G, S = G.state, u = S.units[k], out = [];
+    if (u.hp <= 0) return out;
+    for (let j = 0; j < E.UNITS; j++) {
+      if (E.teamOf(j) === 0 || S.units[j].hp <= 0 || !E.seenBy(S, 0, j)) continue;
+      if (E.inReach(u.weapon, u, S.units[j])) out.push(j);
+    }
+    return out;
+  }
+
+  // 選んだ行動の見通し（移動先・攻撃できる範囲・盾の向き）
+  function updatePreview() {
+    const G = App.G, ui = G.ui, S = G.state;
+    ui.layer.preview.replaceChildren();
+    for (let i = 0; i < E.N; i++) ui.rm[i].classList.remove('on');
+    ui.cell.forEach(c => c.classList.remove('go'));
+    const k = G.active;
+    if (!G.busy && !isOver(G) && alive(S, k)) {
+      const P = S.units[k];
+      for (const a of E.legalActions(S, k)) {
+        if (a.t === 'move') ui.cell[E.idx(P.x + E.DIRS[a.d].x, P.y + E.DIRS[a.d].y)].classList.add('go');
+      }
+    }
+    for (const m of MINE) {
+      const sel = G.sel[m];
+      if (!sel || !alive(S, m)) continue;
+      const P = S.units[m], c = centerOf(P);
+      if (sel.t === 'move') {
+        const d = E.DIRS[sel.d];
+        ui.layer.preview.append(sv('rect', { class: 'pv-move', x: (P.x + d.x) * C + 6, y: (P.y + d.y) * C + 6, width: C - 12, height: C - 12, rx: 8 }));
+      } else if (sel.t === 'jump') {
+        const d = E.DIRS[sel.d], n = E.RULES.jumpDist;
+        const dest = centerOf({ x: P.x + d.x * n, y: P.y + d.y * n });
+        ui.layer.preview.append(sv('line', { class: 'pv-line', x1: c.x, y1: c.y, x2: dest.x, y2: dest.y }));
+        ui.layer.preview.append(sv('rect', { class: 'pv-move', x: (P.x + d.x * n) * C + 6, y: (P.y + d.y * n) * C + 6, width: C - 12, height: C - 12, rx: 8 }));
+      } else if (sel.t === 'attack') {
+        if (m === k) for (const i of E.rangeCells(P.weapon, P)) ui.rm[i].classList.add('on');
+        if (sel.tg != null && alive(S, sel.tg) && seenUnit(S, sel.tg)) {
+          const tc = centerOf(S.units[sel.tg]);
+          ui.layer.preview.append(sv('circle', { class: 'pv-target', cx: tc.x, cy: tc.y, r: 52 }));
+          ui.layer.preview.append(sv('line', { class: 'pv-line', x1: c.x, y1: c.y, x2: tc.x, y2: tc.y }));
+        }
+      } else if (sel.t === 'guard' && sel.d) {
+        ui.layer.preview.append(sv('path', { class: 'pv-guard', d: wedgePath(c, sel.d, 50) }));
+      } else if (sel.t === 'guard' || sel.t === 'charge' || sel.t === 'bag' || sel.t === 'unbag') {
+        ui.layer.preview.append(sv('circle', { class: 'pv-ring', cx: c.x, cy: c.y, r: 49 }));
+      }
+    }
+  }
+  // 盾の向き d を中心に ±45 度の弧
+  function wedgePath(c, d, r) {
+    const v = E.DIRS[d], ang = Math.atan2(v.y, v.x), w = Math.PI / 4;
+    const p = a => `${(c.x + Math.cos(a) * r).toFixed(1)} ${(c.y + Math.sin(a) * r).toFixed(1)}`;
+    return `M ${p(ang - w)} A ${r} ${r} 0 0 1 ${p(ang + w)}`;
+  }
+
+  function onBoardClick(e) {
+    const G = App.G;
+    if (!G || G.busy || isOver(G)) return;
+    const cell = e.target.closest && e.target.closest('rect.cell');
+    if (!cell) return;
+    const S = G.state, cx = Number(cell.dataset.x), cy = Number(cell.dataset.y);
+    // 自分の駒をクリック → その駒の行動を決める
+    for (const m of MINE) if (alive(S, m) && S.units[m].x === cx && S.units[m].y === cy) { setActive(m); return; }
+    const k = G.active, P = S.units[k];
+    if (!alive(S, k)) return;
+    // 攻撃を選んでいるときに敵をクリック → 狙う相手
+    if (G.sel[k] && G.sel[k].t === 'attack') {
+      for (const j of targetsFor(k)) if (S.units[j].x === cx && S.units[j].y === cy) { setTarget(j); return; }
+    }
+    const dx = cx - P.x, dy = cy - P.y;
+    for (const d of E.DIR_KEYS) if (E.DIRS[d].x === dx && E.DIRS[d].y === dy) select({ t: 'move', d });
+  }
+
+  // ---------- 状態カード ----------
+  function buildCards(G) {
+    for (let t = 0; t < E.TEAMS; t++) {
+      const rows = E.unitsOf(t).map(i => {
+        const W = E.WEAPONS[G.state.units[i].weapon], B = E.SUBS[G.state.units[i].sub];
+        return h('div', { class: 'prow', 'data-u': String(i) },
+          h('div', { class: 'p-head' },
+            h('span', { class: 'p-badge', text: String((i % E.PER) + 1) }),
+            h('span', { class: 'p-name', text: E.unitName(i) }),
+            h('span', { class: 'p-weapon', text: `${W.glyph} ${W.name}` + (B.id === 'none' ? '' : ` ＋ ${B.name}`) })),
+          h('div', { class: 'f-hp' }, h('div', { class: 'hpbar', role: 'img', 'aria-label': 'HP' }, h('i')), h('span', { class: 'hpnum', text: String(E.START_HP) })),
+          h('div', { class: 'chips' }));
+      });
+      $(CARD_ID[t]).replaceChildren(
+        h('div', { class: 'f-head' }, h('i', { class: 'f-dot' }), h('span', { class: 'f-name', text: tname(t) }), h('span', { class: 'f-total', text: '' })),
+        ...rows);
+    }
+  }
+  function setRow(row, u, known) {
+    const r = Math.max(0, u.hp) / E.START_HP;
+    const bar = row.querySelector('.hpbar i');
+    bar.style.transform = `scaleX(${r})`;
+    bar.classList.toggle('low', u.hp > 0 && u.hp <= 30);
+    row.querySelector('.hpnum').textContent = String(u.hp);
+    row.querySelector('.hpbar').setAttribute('aria-label', `HP ${u.hp}`);
+    row.classList.toggle('dead', u.hp <= 0);
+    const chips = row.querySelector('.chips');
+    chips.replaceChildren();
+    if (u.hp <= 0) { chips.append(h('span', { class: 'chip warn', text: '撃破' })); return; }
+    if (!known) { chips.append(h('span', { class: 'chip warn', text: '状態不明' })); return; }
+    const W = E.WEAPONS[u.weapon];
+    if (W.charge && u.charged) chips.append(h('span', { class: 'chip ok', text: '溜め完了' }));
+    if (W.shield && u.cd > 0) chips.append(h('span', { class: 'chip warn', text: '次ターン盾不可' }));
+    if (u.hidden) chips.append(h('span', { class: 'chip ok', text: '隠れ中' }));
+    if (u.sub === 'hopper' && u.scd > 0) chips.append(h('span', { class: 'chip warn', text: '次ターン跳べない' }));
+  }
+  function renderStatus(S) {
+    const G = App.G;
+    for (let t = 0; t < E.TEAMS; t++) {
+      const el = $(CARD_ID[t]);
+      const rows = el.querySelectorAll('.prow');
+      E.unitsOf(t).forEach((i, k) => {
+        setRow(rows[k], S.units[i], seenUnit(S, i));
+        const ui = G.ui.units[i];
+        ui.hpFg.style.transform = `scaleX(${Math.max(0, S.units[i].hp) / E.START_HP})`;
+        ui.hpFg.classList.toggle('low', S.units[i].hp > 0 && S.units[i].hp <= 30);
+      });
+      el.querySelector('.f-total').textContent = `撃破 ${S.score[t]}点 ・ ${E.teamAlive(S, t) ? `HP ${E.teamHp(S, t)}` : '全滅'}`;
+      el.classList.toggle('out', !E.teamAlive(S, t));
+    }
+    $('turnNo').textContent = String(S.turn).padStart(2, '0');
+  }
+
+  // ---------- 操作パネル ----------
+  function buildControls(G) {
+    const box = $('controls');
+    G.tabs = [];
+    const tabs = h('div', { class: 'ptabs', role: 'tablist', 'aria-label': '行動を決める駒' }, MINE.map(k => {
+      const W = E.WEAPONS[G.state.units[k].weapon], B = E.SUBS[G.state.units[k].sub];
+      const b = h('button', { type: 'button', class: 'ptab', role: 'tab', 'data-k': String(k), onclick: () => setActive(k) },
+        h('span', { class: 'p-badge', text: String(k + 1) }),
+        h('span', { class: 'pt-main' }, h('b', { text: `駒${k + 1} ${W.name}` }),
+          B.id === 'none' ? null : h('small', { class: 'pt-sub', text: `＋ ${B.name}` }),
+          h('small', { class: 'pt-sum', text: '未選択' })));
+      G.tabs[k] = b;
+      return b;
+    }));
+    G.panel = h('div', { class: 'panel' });
+    G.hint = h('p', { class: 'hint', text: '' });
+    G.commit = h('button', { type: 'button', class: 'btn primary', onclick: commit, disabled: true }, '決定');
+    box.replaceChildren(
+      h('div', { class: 'c-title', text: '駒ごとに行動を選ぶ' }),
+      tabs, G.panel,
+      h('div', { class: 'commit' }, G.commit, G.hint,
+        h('details', { class: 'keys' }, h('summary', { text: 'キー操作' }),
+          h('p', { text: 'Q/E＝駒の切り替え / 矢印＝移動 / Shift+矢印＝盾の向き（盾の駒）・跳ぶ（グラスホッパーの駒） / 1＝攻撃 2＝防御 3＝溜め 4＝待機 5＝バッグワーム／解除 6→矢印＝跳ぶ / Enter＝決定' }))));
+    buildPanel();
+  }
+
+  function buildPanel() {
+    const G = App.G, k = G.active, u = G.state.units[k];
+    G.btns = {};
+    G.jumpCap = null;
+    G.padGroups = null; G.modeBtns = {};
+    if (u.hp <= 0) { G.panel.replaceChildren(h('p', { class: 'hint dead-msg', text: 'この駒は撃破されました。' })); G.tgBox = null; return; }
+    const W = E.WEAPONS[u.weapon];
+    const mkBtn = (act, label, cls, aria) => {
+      const b = h('button', { type: 'button', class: 'btn ' + (cls || ''), 'aria-label': aria || label, onclick: () => select(act) }, label);
+      G.btns[E.actKey(act)] = b;
+      return b;
+    };
+    const pad = (type, labelFor) => h('div', { class: 'pad' },
+      mkBtn({ t: type, d: 'N' }, '↑', 'u', labelFor('上')),
+      mkBtn({ t: type, d: 'W' }, '←', 'l', labelFor('左')),
+      mkBtn({ t: type, d: 'S' }, '↓', 'd', labelFor('下')),
+      mkBtn({ t: type, d: 'E' }, '→', 'r', labelFor('右')));
+    // 矢印パッドは「決定」の隣の同じ場所に1つだけ出す。移動のほかに、跳ぶ・盾の向きがあれば、上のボタンで切り替える
+    const groups = [], pads = {};
+    pads.move = h('div', { class: 'c-group g-move' }, h('span', { class: 'c-cap', text: '移動（1マス）' }), pad('move', n => `${n}へ移動`));
+    const acts = [mkBtn({ t: 'attack' }, '攻撃', '', '攻撃')];
+    if (!W.shield) acts.push(mkBtn({ t: 'guard' }, '防御', '', '防御'));
+    if (W.charge) acts.push(mkBtn({ t: 'charge' }, '溜め', '', '溜める'));
+    if (u.sub === 'bag') acts.push(u.hidden ? mkBtn({ t: 'unbag' }, '解除', '', 'バッグワームを解除') : mkBtn({ t: 'bag' }, 'バッグワーム', '', 'バッグワームで隠れる'));
+    acts.push(mkBtn({ t: 'wait' }, '待機', '', '待機'));
+    if (u.sub === 'hopper') {
+      G.jumpCap = h('span', { class: 'c-cap', text: '' });
+      pads.jump = h('div', { class: 'c-group g-jump' }, G.jumpCap, pad('jump', n => `${n}へ跳ぶ`));
+    }
+    if (W.shield) pads.guard = h('div', { class: 'c-group g-guard' }, h('span', { class: 'c-cap', text: '盾を構える向き（防御）' }), pad('guard', n => `盾を${n}向きに構える`));
+    const modes = ['move', 'jump', 'guard'].filter(m => pads[m]);
+    G.padGroups = pads;
+    const sel = G.sel[G.active];
+    G.padMode = sel && sel.t === 'jump' ? 'jump' : (sel && sel.t === 'guard' && sel.d ? 'guard' : 'move');
+    if (modes.length > 1) {
+      groups.push(h('div', { class: 'padmode', role: 'group', 'aria-label': '矢印の使い道' }, modes.map(m => {
+        const b = h('button', { type: 'button', 'data-m': m, 'aria-pressed': 'false', onclick: () => setPadMode(m) }, PAD_LABEL[m]);
+        G.modeBtns[m] = b;
+        return b;
+      })));
+    }
+    modes.forEach(m => groups.push(pads[m]));
+    groups.push(h('div', { class: 'c-group g-acts' }, h('span', { class: 'c-cap', text: '行動' }), h('div', { class: 'acts' }, acts)));
+    G.tgBox = h('div', { class: 'tg' });
+    G.panel.replaceChildren(h('div', { class: 'c-groups' }, groups), G.tgBox);
+    applyPadMode();
+  }
+  const PAD_LABEL = { move: '移動', jump: '跳ぶ', guard: '盾を構える' };
+  // いま見せる矢印パッドを反映する（見せないパッドもボタンは残るので、状態の更新はそのまま届く）
+  function applyPadMode() {
+    const G = App.G;
+    if (!G || !G.padGroups) return;
+    for (const m in G.padGroups) G.padGroups[m].hidden = m !== G.padMode;
+    for (const m in G.modeBtns) {
+      G.modeBtns[m].setAttribute('aria-pressed', String(m === G.padMode));
+      G.modeBtns[m].classList.toggle('on', m === G.padMode);
+    }
+  }
+  function setPadMode(m) {
+    const G = App.G;
+    if (!G || !G.padGroups || !G.padGroups[m]) return;
+    G.padMode = m;
+    applyPadMode();
+  }
+
+  function actLabel(a) {
+    switch (a.t) {
+      case 'move': return `移動${E.DIR_LABEL[a.d]}`;
+      case 'attack': return '攻撃';
+      case 'guard': return a.d ? `盾${E.DIR_LABEL[a.d]}` : '防御';
+      case 'charge': return '溜め';
+      case 'jump': return `跳ぶ${E.DIR_LABEL[a.d]}`;
+      case 'bag': return 'バッグワーム';
+      case 'unbag': return '解除';
+      default: return '待機';
+    }
+  }
+  function selText(a) {
+    switch (a.t) {
+      case 'move': return `${DIR_NAME[a.d]}へ移動`;
+      case 'attack': return a.tg != null ? `${E.unitName(a.tg)}を狙って攻撃` : '攻撃';
+      case 'guard': return a.d ? `盾を${DIR_NAME[a.d]}向きに構える` : '防御';
+      case 'charge': return '溜め';
+      case 'jump': return `${DIR_NAME[a.d]}へ跳ぶ`;
+      case 'bag': return 'バッグワーム（隠れる）';
+      case 'unbag': return 'バッグワーム解除';
+      default: return '待機';
+    }
+  }
+  const needs = (G, k) => alive(G.state, k) && !G.sel[k];
+
+  function refreshControls() {
+    const G = App.G, S = G.state, k = G.active, u = S.units[k], W = E.WEAPONS[u.weapon];
+    const locked = G.busy || isOver(G);
+    if (u.hp > 0) {
+      const legal = new Set(E.legalActions(S, k).map(E.actKey));
+      for (const key in G.btns) {
+        const b = G.btns[key];
+        b.disabled = locked || !legal.has(key);
+        b.classList.toggle('sel', !!G.sel[k] && E.actKey(G.sel[k]) === key);
+      }
+      const setSub = (key, text) => {
+        const b = G.btns[key]; if (!b) return;
+        let s = b.querySelector('small');
+        b.setAttribute('title', text || '');   // 狭いので小さな注釈は画面に出さず、マウスを乗せたときに見せる
+        if (!text) { if (s) s.remove(); return; }
+        if (!s) { s = h('small'); b.append(s); }
+        s.textContent = text;
+      };
+      setSub('attack', u.hidden ? '隠れ中は撃てない' : (W.charge && !u.charged ? '先に溜めが必要' : null));
+      setSub('charge', W.charge ? (u.hidden ? '隠れ中は不可' : (u.charged ? null : '次から撃てる')) : null);
+      setSub('bag', 'ターン終了後に隠れる');
+      setSub('unbag', 'ターン終了後に解除');
+      if (G.jumpCap) G.jumpCap.textContent = u.scd > 0 ? '跳ぶ（次のターンは使えない）' : '跳ぶ（2マス先へ。壁・駒は飛び越える）';
+    }
+    MINE.forEach(m => {
+      const tab = G.tabs[m], dead = !alive(S, m);
+      tab.disabled = dead || G.busy || isOver(G);
+      tab.setAttribute('aria-selected', String(m === k));
+      tab.classList.toggle('done', !dead && !!G.sel[m]);
+      tab.querySelector('.pt-sum').textContent = dead ? '撃破' : (G.sel[m] ? selText(G.sel[m]) : '未選択');
+    });
+    // 狙う相手（攻撃を選んでいて、届く敵が2体以上いるとき）
+    if (G.tgBox) {
+      G.tgBox.replaceChildren();
+      const sel = G.sel[k], list = (sel && sel.t === 'attack') ? targetsFor(k) : [];
+      if (list.length > 1) {
+        G.tgBox.append(h('span', { class: 'c-cap', text: '狙う相手（盤面の敵をクリックでも選べます）' }),
+          h('div', { class: 'tgrow' },
+            h('button', { type: 'button', class: 'btn' + (sel.tg == null ? ' sel' : ''), disabled: locked, onclick: () => setTarget(null), 'aria-label': 'おまかせ（HPが低い相手を狙う）' }, 'おまかせ'),
+            list.map(j => h('button', { type: 'button', class: 'btn t' + E.teamOf(j) + (sel.tg === j ? ' sel' : ''), disabled: locked, onclick: () => setTarget(j), 'aria-label': `${E.unitName(j)}を狙う` }, `${E.unitName(j)}　HP ${S.units[j].hp}`))));
+      }
+    }
+    const ready = MINE.every(m => !needs(G, m));
+    G.commit.disabled = locked || !ready;
+    G.commit.classList.toggle('ready', !G.commit.disabled);   // 揃ったら緑になって脈動する
+    armAuto(G, !G.commit.disabled);
+    if (locked) G.hint.textContent = '';
+    else if (ready) G.hint.textContent = App.auto ? '準備OK。まもなく実行します。' : '準備OK。「決定」を押してください。';
+    else {
+      const nx = MINE.find(m => needs(G, m));
+      G.hint.textContent = nx === k ? `駒${nx + 1}の行動を選んでください。` : `駒${nx + 1}の行動がまだです。`;
+    }
+    updatePreview();
+    if (G.ui) MINE.forEach(m => G.ui.units[m].selring.classList.toggle('on', m === k && !locked && alive(S, m)));
+  }
+
+  // 「自動で決定」: 2つの駒の行動が揃ったら、AUTO_MS 待ってから実行する。待つ間に選び直したら、やり直す。
+  // 狙う相手を選べる攻撃（届く敵が2体以上）で、まだ相手を選んでいないときは、選ぶ時間がなくなるので自動では実行しない
+  const AUTO_MS = 600;
+  function disarmAuto(G) {
+    G.autoTok = (G.autoTok || 0) + 1;
+    if (G.autoTimer) { clearTimeout(G.autoTimer); G.autoTimer = null; }
+  }
+  function armAuto(G, ready) {
+    disarmAuto(G);
+    if (!App.auto || !ready) return;
+    if (MINE.some(m => alive(G.state, m) && G.sel[m] && G.sel[m].t === 'attack' && G.sel[m].tg == null && targetsFor(m).length > 1)) return;
+    const tok = G.autoTok;
+    G.autoTimer = setTimeout(() => {
+      G.autoTimer = null;
+      if (App.G === G && G.autoTok === tok && App.auto) commit();
+    }, AUTO_MS);
+  }
+
+  function setActive(k) {
+    const G = App.G;
+    if (!G || G.busy || isOver(G) || !alive(G.state, k)) return;
+    G.active = k;
+    G.jumpArmed = false;
+    buildPanel();
+    refreshControls();
+  }
+
+  function select(act) {
+    const G = App.G;
+    if (!G || G.busy || isOver(G)) return;
+    const k = G.active;
+    if (!alive(G.state, k)) return;
+    const key = E.actKey(act);
+    if (!E.legalActions(G.state, k).some(a => E.actKey(a) === key)) return;
+    const wasEmpty = !G.sel[k];
+    G.sel[k] = act;
+    // 矢印の使い道を、選んだ行動に合わせる（キー操作で選んだときも、そのパッドが見える）
+    if (act.t === 'jump') G.padMode = 'jump';
+    else if (act.t === 'guard' && act.d) G.padMode = 'guard';
+    else if (act.t === 'move') G.padMode = 'move';
+    applyPadMode();
+    // 反対側の駒がまだなら、続けてそちらを選ばせる（狙う相手を選べる攻撃のときは留まる）
+    const other = 1 - k;
+    const choosing = act.t === 'attack' && targetsFor(k).length > 1;
+    if (wasEmpty && !choosing && needs(G, other)) { G.active = other; buildPanel(); }
+    refreshControls();
+  }
+
+  function setTarget(j) {
+    const G = App.G, k = G.active;
+    if (!G || G.busy || isOver(G)) return;
+    const sel = G.sel[k];
+    if (!sel || sel.t !== 'attack') return;
+    G.sel[k] = j == null ? { t: 'attack' } : { t: 'attack', tg: j };
+    refreshControls();
+  }
+
+  // ---------- 1ターンの実行 ----------
+  async function commit() {
+    const G = App.G;
+    if (!G || G.busy || isOver(G) || !MINE.every(m => !needs(G, m))) return;
+    const id = G.id;
+    G.busy = true;
+    G.jumpArmed = false;
+    disarmAuto(G);
+    const S0 = G.state;
+    const acts = new Array(E.UNITS);
+    MINE.forEach(m => { acts[m] = G.sel[m] || { t: 'wait' }; });
+    for (let t = 1; t < E.TEAMS; t++) {
+      const ids = E.unitsOf(t);
+      if (!E.teamAlive(S0, t)) { ids.forEach(i => { acts[i] = { t: 'wait' }; }); continue; }
+      const mine = G.ais[t].choose(S0);
+      ids.forEach((i, k) => { acts[i] = mine[k]; });
+    }
+    const res = E.resolveTurn(S0, acts);
+    const S1 = res.state;
+    const linger = new Set();
+    for (let i = 0; i < E.UNITS; i++) if (alive(S0, i) && !alive(S1, i)) linger.add(i);
+    G.state = S1; G.sel = [null, null];
+    if (!alive(S1, G.active)) G.active = MINE.find(m => alive(S1, m)) ?? 0;
+    if (!E.teamAlive(S1, 0)) G.over = true;
+    buildPanel();
+    refreshControls();
+    renderBoard(S1, linger);
+    await sleep(T.move);
+    if (App.G !== G || G.id !== id) return;
+    playEffects(res, S1);
+    await sleep(T.fx);
+    if (App.G !== G || G.id !== id) return;
+    renderBoard(S1);
+    renderStatus(S1);
+    for (let t = 1; t < E.TEAMS; t++) G.ais[t].observe(S0, res.acts);
+    pushLog(S0.turn, res, S0, S1);
+    G.busy = false;
+    refreshControls();
+    if (G.over && !S1.result) {
+      // あなたのチームが全滅したあとも、得点で順位が決まるので、CPU同士の対戦を最後まで一気に進める
+      const fin = runOut(G, S1);
+      G.state = fin; G.auto = true;
+      $('log').prepend(h('li', {}, h('span', { class: 'tn', text: '—' }), h('span', { class: 'al', text: 'あなたのチームは全滅' }), h('span', { class: 'dim', text: 'このあとは、CPU同士の対戦を最後まで進めました。' })));
+      renderBoard(fin); renderStatus(fin);
+      showResult(fin);
+    } else if (S1.result) showResult(S1);
+  }
+
+  // プレイヤー不在のまま、決着まで進める
+  function runOut(G, S) {
+    for (let n = 0; !S.result && n < 100; n++) {
+      const acts = Array.from({ length: E.UNITS }, () => ({ t: 'wait' }));
+      for (let t = 1; t < E.TEAMS; t++) {
+        if (!E.teamAlive(S, t)) continue;
+        const mine = G.ais[t].choose(S);
+        E.unitsOf(t).forEach((i, k) => { acts[i] = mine[k]; });
+      }
+      const res = E.resolveTurn(S, acts);
+      for (let t = 1; t < E.TEAMS; t++) G.ais[t].observe(S, res.acts);
+      S = res.state;
+    }
+    return S;
+  }
+
+  // ---------- 演出 ----------
+  function fxAdd(el, ms) { App.G.ui.layer.fx.append(el); setTimeout(() => el.remove(), ms); }
+  function fxText(pos, text, cls, dy) {
+    const c = centerOf(pos);
+    const t = sv('text', { class: 'fxnum ' + cls, x: c.x, y: c.y + (dy || -26) });
+    t.textContent = text;
+    fxAdd(t, 1200);
+  }
+  function playEffects(res, S1) {
+    const G = App.G, ui = G.ui;
+    const shown = j => seenUnit(S1, j);
+    const tc = j => 't' + E.teamOf(j);
+    for (const ev of res.events) {
+      if (ev.type === 'attack') {
+        const tg = ev.target;
+        if (!(shown(ev.who) || (tg >= 0 && shown(tg)))) continue;
+        const a = centerOf(ev.from), b = centerOf(ev.to);
+        fxAdd(sv('line', { class: `beam ${tc(ev.who)} ${E.WEAPONS[ev.weapon].kind}`, x1: a.x, y1: a.y, x2: b.x, y2: b.y }), 900);
+        if (ev.hit && ev.dmg > 0) {
+          const body = ui.units[tg].body;
+          body.classList.add('hit');
+          setTimeout(() => body.classList.remove('hit'), 500);
+          fxText(ev.to, `−${ev.dmg}`, E.teamOf(tg) === 0 ? 'bad' : (E.teamOf(ev.who) === 0 ? 'good' : 'info'));
+        } else if (ev.hit) {
+          fxText(ev.to, '防いだ', 'info');
+        } else if (shown(ev.who)) {
+          fxText(ev.from, ev.reason === 'range' ? '届かず' : '壁で外れ', 'info', -50);
+        }
+        if (ev.reflect > 0 && shown(ev.who)) fxText(ev.from, `−${ev.reflect}`, E.teamOf(ev.who) === 0 ? 'bad' : 'good', 6);
+      } else if (ev.type === 'guard' && shown(ev.who)) {
+        const c = centerOf(S1.units[ev.who]);
+        if (ev.d) fxAdd(sv('path', { class: `fxwedge ${tc(ev.who)}`, d: wedgePath(c, ev.d, 52) }), 900);
+        else fxAdd(sv('circle', { class: `fxring ${tc(ev.who)}`, cx: c.x, cy: c.y, r: 46 }), 800);
+      } else if (ev.type === 'charge' && shown(ev.who)) {
+        const c = centerOf(S1.units[ev.who]);
+        fxAdd(sv('circle', { class: `fxring ${tc(ev.who)}`, cx: c.x, cy: c.y, r: 46 }), 800);
+      } else if (ev.type === 'chargeLost' && shown(ev.who)) {
+        fxText(S1.units[ev.who], '溜め切れ', 'info', -50);
+      } else if (ev.type === 'hide' && shown(ev.who)) {
+        fxText(S1.units[ev.who], '姿を隠した', 'info', -50);
+      } else if (ev.type === 'reveal' && shown(ev.who)) {
+        fxText(S1.units[ev.who], ev.why === 'hit' ? '見つかった' : '姿を現した', 'info', -50);
+      } else if (ev.type === 'move' && ev.jump && shown(ev.who)) {
+        const c = centerOf(ev.to);
+        fxAdd(sv('circle', { class: `fxring ${tc(ev.who)}`, cx: c.x, cy: c.y, r: 46 }), 800);
+      } else if (ev.type === 'down' && shown(ev.who)) {
+        fxText(S1.units[ev.who], '撃破', 'info', -50);
+      }
+    }
+  }
+
+  // ---------- 記録 ----------
+  function pushLog(turn, res, S0, S1) {
+    const known = j => E.teamOf(j) === 0 || !App.fog || E.seenBy(S0, 0, j) || E.seenBy(S1, 0, j);
+    const nm = j => (known(j) ? E.unitName(j) : '見えない敵');
+    const lines = [];
+    for (const ev of res.events) {
+      if (ev.type === 'attack') {
+        const tg = ev.target;
+        if (!known(ev.who) && !(tg >= 0 && E.teamOf(tg) === 0)) continue;
+        if (ev.hit && ev.dmg > 0) {
+          const note = ev.guard === 'reduced' ? '（防御で軽減）' : ev.guard === 'pierced' ? '（防御を貫通）' : ev.guard === 'offside' ? '（盾の向きが違った）' : '';
+          lines.push({ t: `${nm(ev.who)}が${nm(tg)}に命中 −${ev.dmg}${note}`, c: E.teamOf(tg) === 0 ? 'bad' : (E.teamOf(ev.who) === 0 ? 'good' : 'dim') });
+        } else if (ev.hit) {
+          lines.push({ t: `${nm(ev.who)}の攻撃は${nm(tg)}の盾に防がれた${ev.reflect ? `（反射 −${ev.reflect}）` : ''}`, c: E.teamOf(ev.who) === 0 ? 'bad' : 'good' });
+        } else if (known(ev.who)) {
+          lines.push({ t: `${nm(ev.who)}の攻撃は${ev.reason === 'range' ? '誰にも届かなかった' : '壁に阻まれた'}`, c: 'dim' });
+        }
+      } else if (ev.type === 'move' && ev.blocked && E.teamOf(ev.who) === 0) {
+        lines.push({ t: `${E.unitName(ev.who)}の移動は阻まれた`, c: 'dim' });
+      } else if (ev.type === 'chargeLost' && known(ev.who)) {
+        lines.push({ t: `${nm(ev.who)}の溜めが切れた`, c: E.teamOf(ev.who) === 0 ? 'bad' : 'good' });
+      } else if (ev.type === 'hide' && known(ev.who)) {
+        lines.push({ t: `${nm(ev.who)}がバッグワームで姿を隠した`, c: 'dim' });
+      } else if (ev.type === 'reveal' && known(ev.who)) {
+        lines.push({ t: `${nm(ev.who)}の隠れ状態が解けた${ev.why === 'hit' ? '（攻撃を受けた）' : ''}`, c: 'dim' });
+      } else if (ev.type === 'down' && known(ev.who)) {
+        lines.push({ t: `${nm(ev.who)}を撃破${ev.by && ev.by.length ? `（${ev.by.map(tname).join('・')}に+${E.KILL_POINT}点）` : ''}`, c: E.teamOf(ev.who) === 0 ? 'bad' : (ev.by && ev.by.includes(0) ? 'good' : 'dim') });
+      }
+    }
+    if (!lines.length) lines.push({ t: '大きな動きなし', c: 'dim' });
+    const parts = [];
+    for (let t = 0; t < E.TEAMS; t++) {
+      const items = E.unitsOf(t).filter(i => alive(S0, i)).map(i => `${E.unitName(i)}:${known(i) ? actLabel(res.acts[i]) : '？'}`);
+      if (items.length) parts.push(`${tname(t)} ${items.join(' ')}`);
+    }
+    const li = h('li', {},
+      h('span', { class: 'tn', text: String(turn).padStart(2, '0') }),
+      h('span', { class: 'al', text: parts.join(' ／ ') }),
+      lines.map(l => h('span', { class: l.c, text: l.t })));
+    $('log').prepend(li);
+    $('live').textContent = `ターン${turn}。` + lines.map(l => l.t).join('。');
+  }
+
+  // ---------- 結果 ----------
+  function showResult(S) {
+    const G = App.G, r = S.result;
+    const rank = r.ranking.indexOf(0) + 1;
+    let title, cls, sub;
+    if (r.winner === null) { title = '引き分け'; cls = ''; sub = '合計点も残りHPも並びました。'; }
+    else if (r.winner === 0) { title = '勝利'; cls = 'win'; sub = `合計${r.scores[0]}点で1位でした。`; }
+    else { title = rank === 2 ? '2位' : '敗北'; cls = rank === 2 ? '' : 'lose'; sub = `${tname(r.winner)}が合計${r.scores[r.winner]}点で勝ちました（あなたは${r.scores[0]}点）。`; }
+    const box = $('result');
+    const how = r.reason === 'time' ? `ターン数（${S.limit}）に到達` : '残りが1チームになった';
+    const kids = [
+      h('div', { class: 'r-title ' + cls, text: title }),
+      h('p', { class: 'r-sub', text: sub }),
+      h('p', { class: 'r-stats', text: `${S.turn}ターン（${how}） / あなたは ${rank}位` }),
+      h('ol', { class: 'r-rank' }, r.ranking.map((t, n) => h('li', { class: 't' + t, text: `${n + 1}位 ${tname(t)}　${r.scores[t]}点（撃破 ${r.kills[t]} + 生存 ${r.bonus[t]}）` }))),
+    ];
+    if (G.auto) kids.push(h('p', { class: 'dim', text: 'あなたの全滅後は、CPU同士の対戦を最後まで進めた結果です。' }));
+    kids.push(h('div', { class: 'r-actions' },
+      h('button', { type: 'button', class: 'btn primary', onclick: () => startGame(), text: '同じ駒でもう一度' }),
+      h('button', { type: 'button', class: 'btn', onclick: toMenu, text: '駒を選び直す' })));
+    box.replaceChildren(h('div', { class: 'r-card', role: 'dialog', 'aria-label': title }, kids));
+    box.hidden = false;
+    const first = box.querySelector('button'); if (first) first.focus();
+    $('live').textContent = `${title}。${sub}`;
+    G.rank = rank;
+  }
+
+  // ---------- 画面の切り替え ----------
+  // 対戦中だけ、ページ全体をスクロールさせない（1画面に収める）印を body につける
+  function setPlaying(on) {
+    if (document.body && document.body.classList) document.body.classList.toggle('playing', on);
+  }
+  function toMenu() {
+    App.G = null;
+    setPlaying(false);
+    $('screenPlay').hidden = true;
+    $('turnBox').hidden = true;
+    $('screenSelect').hidden = false;
+    $('result').hidden = true;
+  }
+
+  function startGame() {
+    const keys = E.WEAPON_ORDER;
+    const cpuW = Array.from({ length: 4 }, () => keys[Math.floor(Math.random() * keys.length)]);
+    const weapons = [App.weapons[0], App.weapons[1], ...cpuW];
+    const cpuS = Array.from({ length: 4 }, () => E.SUB_ORDER[Math.floor(Math.random() * E.SUB_ORDER.length)]);
+    const subs = [App.subs[0], App.subs[1], ...cpuS];
+    const state = E.newGame(weapons, E.randomLimit(), subs);
+    const G = {
+      id: ++App.seq, state, ais: { 1: AIm.create(App.level, 1), 2: AIm.create(App.level, 2) },
+      sel: [null, null], active: 0, busy: false, autoTok: 0, autoTimer: null, padMode: 'move', padGroups: null, modeBtns: {}, over: false, rank: 0, auto: false, ghost: {}, ui: null, btns: {}, tabs: [],
+    };
+    for (let j = 2; j < E.UNITS; j++) G.ghost[j] = { ...E.STARTS[E.teamOf(j)][j % E.PER] };
+    App.G = G;
+    setPlaying(true);
+    $('screenSelect').hidden = true;
+    $('screenPlay').hidden = false;
+    $('turnBox').hidden = false;
+    $('turnMax').textContent = `/ ${state.limit}`;
+    $('result').hidden = true;
+    $('log').replaceChildren();
+    G.ui = buildBoard();
+    for (let i = 0; i < E.UNITS; i++) G.ui.units[i].glyph.textContent = E.WEAPONS[weapons[i]].glyph;
+    buildCards(G);
+    buildControls(G);
+    renderBoard(state);
+    renderStatus(state);
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      G.ui.units.forEach(u => u.g.classList.remove('notr'));
+    }));
+    const wn = t => E.unitsOf(t).map(i => E.WEAPONS[weapons[i]].name + (subs[i] === 'none' ? '' : `（${E.SUBS[subs[i]].name}）`)).join('・');
+    $('log').append(h('li', {}, h('span', { class: 'tn', text: '—' }),
+      h('span', { class: 'al', text: `試合開始。CPU-A: ${wn(1)} ／ CPU-B: ${wn(2)}` }),
+      h('span', { class: 'dim', text: `この試合は${state.limit}ターン。撃破1点、ターン数まで生き残った駒は1つ2点で、合計点が最も多いチームの勝ちです。` })));
+    refreshControls();
+    $('live').textContent = `試合開始。CPU-Aの武器は${wn(1)}、CPU-Bの武器は${wn(2)}。`;
+  }
+
+  // ---------- キー操作 ----------
+  document.addEventListener('keydown', e => {
+    const G = App.G;
+    if (!G || $('screenPlay').hidden || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (G.busy || isOver(G)) return;
+    const au = G.state.units[G.active], W = E.WEAPONS[au.weapon];
+    const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    const arrow = { ArrowUp: 'N', ArrowDown: 'S', ArrowLeft: 'W', ArrowRight: 'E', w: 'N', s: 'S', a: 'W', d: 'E' }[key];
+    // 「6」を押してから矢印で跳ぶ（Shift+矢印は盾の向きと重なるので、盾の駒はこちらを使う）
+    const armed = !!G.jumpArmed;
+    if (arrow || e.key !== '6') G.jumpArmed = false;
+    if (arrow) {
+      e.preventDefault();
+      if (armed) select({ t: 'jump', d: arrow });
+      else if (e.shiftKey && W.shield) select({ t: 'guard', d: arrow });
+      else if (e.shiftKey && au.sub === 'hopper') select({ t: 'jump', d: arrow });
+      else select({ t: 'move', d: arrow });
+    } else if (e.key === '5') select({ t: au.hidden ? 'unbag' : 'bag' });
+    else if (e.key === '6') {
+      if (au.sub === 'hopper') { G.jumpArmed = true; G.hint.textContent = '跳ぶ向きを矢印キーで選んでください。'; }
+    } else if (key === 'q') setActive(0);
+    else if (key === 'e') setActive(1);
+    else if (e.key === '1') select({ t: 'attack' });
+    else if (e.key === '2' && !W.shield) select({ t: 'guard' });
+    else if (e.key === '3' && W.charge) select({ t: 'charge' });
+    else if (e.key === '4') select({ t: 'wait' });
+    else if (e.key === 'Enter' && !G.commit.disabled) { e.preventDefault(); commit(); }
+  });
+
+  // ---------- 起動 ----------
+  function init() {
+    buildSelect();
+    $('start').addEventListener('click', () => startGame());
+    $('board').addEventListener('click', onBoardClick);
+    $('toMenu').addEventListener('click', toMenu);
+    const fog = $('optFog'), rng = $('optRange'), auto = $('optAuto');
+    fog.checked = App.fog; rng.checked = App.showRange; auto.checked = App.auto;
+    auto.addEventListener('change', () => { App.auto = auto.checked; store.set('auto', App.auto); if (App.G) refreshControls(); });
+    fog.addEventListener('change', () => { App.fog = fog.checked; store.set('fog', App.fog); if (App.G) { renderBoard(App.G.state); renderStatus(App.G.state); refreshControls(); } });
+    rng.addEventListener('change', () => { App.showRange = rng.checked; store.set('range', App.showRange); if (App.G) renderBoard(App.G.state); });
+  }
+  init();
+  window.__maai = { App, E, AIm, startGame, commit, select, setActive, setTarget, targetsFor };
+})();
+
+</script>
